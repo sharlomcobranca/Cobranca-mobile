@@ -27,14 +27,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Instalar Dependencias
+      - name: Instalar Dependencias e Criar requirements.txt
         run: |
           python -m pip install --upgrade pip
           pip install flet supabase
+          echo "flet" > requirements.txt
+          echo "supabase" >> requirements.txt
 
       - name: Compilar APK
         run: |
-          flet build apk
+          flet build apk --verbose
 
       - name: Salvar APK
         uses: actions/upload-artifact@v4

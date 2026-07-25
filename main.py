@@ -204,9 +204,10 @@ def main(page: ft.Page):
     )
 
     card_login = ft.Card(
-        color=C_CARD,
         elevation=4,
         content=ft.Container(
+            bgcolor=C_CARD,
+            border_radius=8,
             content=ft.Column([
                 ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, size=44, color=C_BLUE_PRIMARY),
                 ft.Text(APP_NAME, size=24, weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN),
@@ -260,16 +261,20 @@ def main(page: ft.Page):
 
                         list_view.controls.append(
                             ft.Card(
-                                color=C_CARD,
-                                content=ft.ListTile(
-                                    leading=ft.Icon(status_icon, color=status_color),
-                                    title=ft.Text(f"{row.get('cliente', 'Cliente')}", color=C_TEXT_MAIN, weight=ft.FontWeight.W_600),
-                                    subtitle=ft.Text(
-                                        f"Filial: {row.get('filial_id')} | Responsável: {row.get('responsavel', 'N/A')}", 
-                                        color=C_TEXT_MUTED,
-                                        size=11
-                                    ),
-                                    trailing=ft.Text(f"R$ {row.get('valor_pagamento', 0):,.2f}", weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN)
+                                elevation=2,
+                                content=ft.Container(
+                                    bgcolor=C_CARD,
+                                    border_radius=8,
+                                    content=ft.ListTile(
+                                        leading=ft.Icon(status_icon, color=status_color),
+                                        title=ft.Text(f"{row.get('cliente', 'Cliente')}", color=C_TEXT_MAIN, weight=ft.FontWeight.W_600),
+                                        subtitle=ft.Text(
+                                            f"Filial: {row.get('filial_id')} | Responsável: {row.get('responsavel', 'N/A')}", 
+                                            color=C_TEXT_MUTED,
+                                            size=11
+                                        ),
+                                        trailing=ft.Text(f"R$ {row.get('valor_pagamento', 0):,.2f}", weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN)
+                                    )
                                 )
                             )
                         )
@@ -283,7 +288,6 @@ def main(page: ft.Page):
                     ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, size=20, color=C_BLUE_PRIMARY),
                     ft.Text(APP_NAME, size=20, weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN),
                 ]),
-                # Exibe somente o nome do usuário cadastrado
                 ft.Container(
                     content=ft.Text(f"[{nome_usuario}]", size=12, color=C_BLUE_HOVER, weight=ft.FontWeight.W_600),
                     padding=ft.padding.all(4)
@@ -291,8 +295,10 @@ def main(page: ft.Page):
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Divider(color=C_BORDER),
             ft.Card(
-                color=C_CARD,
+                elevation=2,
                 content=ft.Container(
+                    bgcolor=C_CARD,
+                    border_radius=8,
                     content=ft.Column([
                         ft.Text("Faturamento Total (Nuvem)", size=12, color=C_TEXT_MUTED),
                         lbl_total

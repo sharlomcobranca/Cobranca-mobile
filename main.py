@@ -2,11 +2,12 @@ import flet as ft
 from supabase import create_client, Client
 
 # ==============================================================================
-# 🔑 CHAVES DO SUPABASE CONFIGURADAS E CORRIGIDAS:
+# 📌 CONFIGURAÇÕES DO SISTEMA E SUPABASE
 # ==============================================================================
+VERSAO_ATUAL_APP = "1.0.0"
+
 SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co"
 SUPABASE_KEY = "Sb_publishable_zwsXS4HokJCEoNhHik4rKA_eUsegx42"
-# ==============================================================================
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -19,6 +20,37 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
+
+    # --------------------------------------------------------------------------
+    # 🔔 VERIFICADOR DE ATUALIZAÇÃO AUTOMÁTICA
+    # --------------------------------------------------------------------------
+    def checar_atualizacao():
+        if not supabase:
+            return
+        try:
+            res = supabase.table("configuracoes").select("versao_apk, link_download").eq("id", 1).execute()
+            if res.data:
+                config = res.data[0]
+                versao_nuvem = config.get("versao_apk")
+                link_download = config.get("link_download")
+
+                if versao_nuvem and versao_nuvem != VERSAO_ATUAL_APP:
+                    dlg_atualizacao = ft.AlertDialog(
+                        title=ft.Text("🚀 Nova Atualização!"),
+                        content=ft.Text(f"A versão {versao_nuvem} já está disponível.\nClique abaixo para baixar."),
+                        actions=[
+                            ft.ElevatedButton(
+                                "📥 Baixar Agora",
+                                on_click=lambda e: page.launch_url(link_download),
+                                style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700, color=ft.Colors.WHITE)
+                            )
+                        ],
+                    )
+                    page.dialog = dlg_atualizacao
+                    dlg_atualizacao.open = True
+                    page.update()
+        except Exception:
+            pass
 
     # --------------------------------------------------------------------------
     # 1. TELA DE LOGIN
@@ -58,7 +90,8 @@ def main(page: ft.Page):
                 page.update()
 
         except Exception as ex:
-            lbl_erro.value = "E-mail ou senha inválidos."
+            # MOSTRA O ERRO EXATO RETORNADO PELO SUPABASE
+            lbl_erro.value = f"Erro: {str(ex)}"
             btn_login.disabled = False
             page.update()
 
@@ -162,6 +195,9 @@ def main(page: ft.Page):
         carregar_dados()
 
     page.add(card_login)
+    
+    # Executa verificação ao abrir o app
+    checar_atualizacao()
 
 
 ft.app(target=main)

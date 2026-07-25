@@ -2,10 +2,10 @@ import flet as ft
 from supabase import create_client, Client
 
 # ==============================================================================
-# 🔑 COLE SUAS CHAVES DO SUPABASE AQUI:
+# 🔑 CHAVES DO SUPABASE CONFIGURADAS E CORRIGIDAS:
 # ==============================================================================
-SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co/rest/v1/"  # Substitua pela sua URL
-SUPABASE_KEY = "sb_publishable_zwsXS4..."         # Cole a Publishable Key copiada da imagem
+SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co"
+SUPABASE_KEY = "Sb_publishable_zwsXS4HokJCEoNhHik4rKA_eUsegx42"
 # ==============================================================================
 
 try:

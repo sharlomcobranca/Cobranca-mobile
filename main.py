@@ -21,7 +21,7 @@ C_TEXT_MUTED    = "#B9BEC7"  # Texto secundário (Cinza claro)
 C_BORDER        = "#353942"  # Bordas discretas
 
 SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." # Sua chave anon public
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE" # Sua chave anon public
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

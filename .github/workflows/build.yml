@@ -1,7 +1,10 @@
-name: Gerar APK Android
+name: Gerar APK Android Automático
 on:
   push:
     branches: [ main, master ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -32,12 +35,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet supabase
 
+      # 1. Atualiza o valor de VERSAO_ATUAL_APP no main.py com base no número da compilação
+      - name: Injetar Versao Automatica no main.py
+        run: |
+          sed -i 's/VERSAO_ATUAL_APP = ".*"/VERSAO_ATUAL_APP = "1.0.${{ github.run_number }}"/' main.py
+
       - name: Compilar APK
         run: |
           flet build apk --python-version 3.12
 
-      - name: Salvar APK
-        uses: actions/upload-artifact@v4
+      # 2. Cria uma Release pública no GitHub e faz o upload do APK
+      - name: Criar GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          name: aplicativo-flow
-          path: build/apk/*.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: Versão 1.0.${{ github.run_number }}
+          files: build/apk/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Atualiza a versão e o link de download direto no Supabase via API
+      - name: Atualizar Versao no Supabase
+        run: |
+          curl -X PATCH 'https://vccshrmzbubwzmfdgzqi.supabase.co/rest/v1/configuracoes?id=eq.1' \
+          -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE" \
+          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "versao_apk": "1.0.'${{ github.run_number }}'",
+            "link_download": "https://github.com/'${{ github.repository }}'/releases/download/v1.0.'${{ github.run_number }}'/app-release.apk"
+          }'

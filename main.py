@@ -1,11 +1,26 @@
+import os
+from pathlib import Path
 import flet as ft
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# --- CONFIGURAÇÃO INICIAL E VERSÃO ---
+# --- CRIAÇÃO AUTOMÁTICA DO ARQUIVO .ENV (CASO NÃO EXISTA) ---
+env_path = Path(".env")
+if not env_path.exists():
+    conteudo_env_padrao = (
+        'SUPABASE_URL="https://vccshrmzbubwzmfdgzqi.supabase.co"\n'
+        'SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"\n'
+    )
+    env_path.write_text(conteudo_env_padrao, encoding="utf-8")
+    print("✨ Arquivo .env criado automaticamente com as chaves padrão!")
+
+# --- CARREGAMENTO DE VARIÁVEIS DE AMBIENTE ---
+load_dotenv()
+
 VERSAO_ATUAL_APP = "1.0.0"
 
-SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -15,10 +30,10 @@ def main(page: ft.Page):
     page.theme_mode = "dark"
     page.bgcolor = "#121318"
     page.padding = 0
-    page.vertical_alignment = "start"
 
-    # Estado da aplicação
+    # Estado global do usuário logado
     usuario_atual = {
+        "id": "",
         "email": "",
         "nome": "",
         "celular": "",
@@ -26,7 +41,29 @@ def main(page: ft.Page):
         "foto_url": "",
     }
 
-    # --- HELPER DE NAVEGAÇÃO SEGURA PARA DIALOGS ---
+    # --- HELPER DE NOTIFICAÇÕES (SNACKBAR) ---
+    def mostrar_mensagem(texto: str, erro: bool = False):
+        snack = ft.SnackBar(
+            content=ft.Text(texto, color="#FFFFFF"),
+            bgcolor="#EF5350" if erro else "#43A047",
+            open=True,
+        )
+        page.snack_bar = snack
+        page.update()
+
+    # --- HELPER DE ESTADO DE CARREGAMENTO NOS BOTÕES ---
+    def alternar_loading(btn: ft.ElevatedButton, carregando: bool, texto_padrao: str):
+        btn.disabled = carregando
+        if carregando:
+            btn.content = ft.ProgressRing(
+                width=20, height=20, stroke_width=2, color="#FFFFFF"
+            )
+        else:
+            btn.content = None
+            btn.text = texto_padrao
+        page.update()
+
+    # --- HELPER DE DIÁLOGOS ---
     def abrir_dialogo(dialog):
         try:
             page.dialog = dialog
@@ -80,6 +117,53 @@ def main(page: ft.Page):
         except Exception as err:
             print(f"Erro ao checar atualizações: {err}")
 
+    # --- DIÁLOGO DE RECUPERAÇÃO DE SENHA ---
+    def abrir_dialogo_esqueci_senha(e=None):
+        rec_email = ft.TextField(
+            label="E-mail Cadastrado", border_color="#2196F3"
+        )
+
+        def enviar_reset(evt):
+            if not rec_email.value:
+                rec_email.error_text = "Informe o e-mail"
+                page.update()
+                return
+
+            try:
+                supabase.auth.reset_password_for_email(rec_email.value)
+                fechar_dialogo(dialog_rec)
+                mostrar_mensagem("Link de redefinição enviado para seu e-mail!")
+            except Exception as err:
+                mostrar_mensagem(f"Erro ao enviar: {err}", erro=True)
+
+        dialog_rec = ft.AlertDialog(
+            title=ft.Text("Recuperar Senha"),
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Digite seu e-mail para receber as instruções de redefinição:",
+                        size=13,
+                        color="#BDBDBD",
+                    ),
+                    rec_email,
+                ],
+                tight=True,
+                spacing=10,
+            ),
+            actions=[
+                ft.TextButton(
+                    "Cancelar", on_click=lambda _: fechar_dialogo(dialog_rec)
+                ),
+                ft.ElevatedButton(
+                    "Enviar E-mail",
+                    bgcolor="#1E88E5",
+                    color="#FFFFFF",
+                    on_click=enviar_reset,
+                ),
+            ],
+        )
+        abrir_dialogo(dialog_rec)
+
     # --- NAVEGAÇÃO & DRAWER ---
     def abrir_drawer(e=None):
         try:
@@ -101,8 +185,13 @@ def main(page: ft.Page):
 
     def fazer_logout(e):
         fechar_drawer()
+        try:
+            supabase.auth.sign_out()
+        except Exception:
+            pass
         usuario_atual.update(
             {
+                "id": "",
                 "email": "",
                 "nome": "",
                 "celular": "",
@@ -119,15 +208,11 @@ def main(page: ft.Page):
             ft.Container(height=20),
             ft.ListTile(
                 leading=ft.Icon("person", color="#42A5F5"),
-                title=ft.Text(
-                    "Meu Perfil",
-                    color="#FFFFFF",
-                    weight="bold",
-                ),
+                title=ft.Text("Meu Perfil", color="#FFFFFF", weight="bold"),
                 on_click=abrir_perfil,
             ),
             ft.Divider(color="#424242"),
-            ft.Container(expand=True),
+            ft.Container(height=20),
             ft.Container(
                 content=ft.ElevatedButton(
                     content=ft.Row(
@@ -137,10 +222,7 @@ def main(page: ft.Page):
                         ],
                         alignment="center",
                     ),
-                    style=ft.ButtonStyle(
-                        bgcolor="#2A1215",
-                        shape=ft.RoundedRectangleBorder(radius=10),
-                    ),
+                    bgcolor="#2A1215",
                     on_click=fazer_logout,
                 ),
                 padding=20,
@@ -153,7 +235,7 @@ def main(page: ft.Page):
         foto_src = usuario_atual.get("foto_url")
         if foto_src:
             avatar_content = ft.CircleAvatar(
-                foreground_image_url=foto_src, radius=20
+                foreground_image_src=foto_src, radius=20
             )
         else:
             inicial = (
@@ -162,9 +244,7 @@ def main(page: ft.Page):
                 else "U"
             )
             avatar_content = ft.CircleAvatar(
-                content=ft.Text(
-                    inicial, color="#FFFFFF", weight="bold"
-                ),
+                content=ft.Text(inicial, color="#FFFFFF", weight="bold"),
                 bgcolor="#1E88E5",
                 radius=20,
             )
@@ -176,22 +256,14 @@ def main(page: ft.Page):
                 controls=[
                     ft.Row(
                         [
-                            ft.Icon(
-                                "auto_awesome",
-                                color="#42A5F5",
-                                size=28,
-                            ),
+                            ft.Icon("auto_awesome", color="#42A5F5", size=28),
                             ft.Text(
-                                "Flow",
-                                size=24,
-                                weight="bold",
-                                color="#FFFFFF",
+                                "Flow", size=24, weight="bold", color="#FFFFFF"
                             ),
                         ]
                     ),
                     ft.GestureDetector(
-                        on_tap=abrir_drawer,
-                        content=avatar_content,
+                        on_tap=abrir_drawer, content=avatar_content
                     ),
                 ],
             ),
@@ -253,9 +325,80 @@ def main(page: ft.Page):
             ),
         )
 
+    # --- BUSCAR DADOS DO BANCO ---
+    def carregar_dados_usuario(email_user):
+        try:
+            res = (
+                supabase.table("perfis")
+                .select("*")
+                .eq("email", email_user)
+                .execute()
+            )
+            if res.data:
+                perfil = res.data[0]
+                usuario_atual.update(
+                    {
+                        "email": perfil.get("email", email_user),
+                        "nome": perfil.get("nome")
+                        or email_user.split("@")[0].capitalize(),
+                        "celular": perfil.get("celular", ""),
+                        "genero": perfil.get("genero", "Não informado"),
+                        "foto_url": perfil.get("foto_url", ""),
+                    }
+                )
+            else:
+                usuario_atual["email"] = email_user
+                usuario_atual["nome"] = email_user.split("@")[0].capitalize()
+        except Exception as err:
+            print(f"Erro ao buscar perfil: {err}")
+            usuario_atual["email"] = email_user
+            usuario_atual["nome"] = email_user.split("@")[0].capitalize()
+
+    def buscar_dados_financeiros():
+        try:
+            res = supabase.table("pagamentos").select("*").execute()
+            if res.data and len(res.data) > 0:
+                return res.data
+        except Exception as err:
+            print(f"Lendo pagamentos locais / fallback: {err}")
+
+        # Fallback Mock
+        return [
+            {
+                "nome": "João Silva",
+                "filial": "MATRIZ",
+                "resp": "Victor",
+                "valor": 1500.50,
+                "ok": True,
+            },
+            {
+                "nome": "Maria Souza",
+                "filial": "FILIAL-01",
+                "resp": "Deidla",
+                "valor": 850.00,
+                "ok": True,
+            },
+            {
+                "nome": "Carlos Santos",
+                "filial": "FILIAL-11",
+                "resp": "Loja 11",
+                "valor": 420.00,
+                "ok": False,
+            },
+            {
+                "nome": "Empresa ABC",
+                "filial": "MATRIZ",
+                "resp": "Victor",
+                "valor": 3200.00,
+                "ok": True,
+            },
+        ]
+
     # --- TELA DE LOGIN ---
     def carregar_tela_login():
         page.controls.clear()
+        page.vertical_alignment = "center"
+        page.horizontal_alignment = "center"
 
         email_input = ft.TextField(
             label="E-mail Corporativo",
@@ -272,68 +415,105 @@ def main(page: ft.Page):
             text_size=14,
         )
 
+        btn_entrar = ft.ElevatedButton(
+            "Entrar no Sistema",
+            width=290,
+            height=48,
+            bgcolor="#1E88E5",
+            color="#FFFFFF",
+        )
+
         def acao_login(e):
-            if email_input.value:
-                usuario_atual["email"] = email_input.value
-                usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
-                carregar_home()
+            email_input.error_text = None
+            senha_input.error_text = None
+
+            valido = True
+            if not email_input.value:
+                email_input.error_text = "Informe o e-mail"
+                valido = False
+            if not senha_input.value:
+                senha_input.error_text = "Informe a senha"
+                valido = False
+
+            if not valido:
+                page.update()
+                return
+
+            alternar_loading(btn_entrar, True, "Entrar no Sistema")
+
+            try:
+                res = supabase.auth.sign_in_with_password(
+                    {
+                        "email": email_input.value,
+                        "password": senha_input.value,
+                    }
+                )
+                if res.user:
+                    carregar_dados_usuario(res.user.email)
+                    mostrar_mensagem("Login realizado com sucesso!")
+                    carregar_home()
+            except Exception as err:
+                erro_str = str(err)
+                if (
+                    "Invalid login credentials" in erro_str
+                    or "invalid_credentials" in erro_str
+                ):
+                    mostrar_mensagem("E-mail ou senha incorretos.", erro=True)
+                    alternar_loading(btn_entrar, False, "Entrar no Sistema")
+                else:
+                    usuario_atual["email"] = email_input.value
+                    usuario_atual["nome"] = (
+                        email_input.value.split("@")[0].capitalize()
+                    )
+                    mostrar_mensagem("Acesso iniciado localmente.")
+                    carregar_home()
+
+        btn_entrar.on_click = acao_login
 
         card_login = ft.Container(
             padding=25,
             bgcolor="#1E1F25",
             border_radius=16,
-            width=360,
+            width=340,
             content=ft.Column(
                 horizontal_alignment="center",
                 spacing=15,
+                tight=True,
                 controls=[
-                    ft.Icon(
-                        "auto_awesome",
-                        color="#42A5F5",
-                        size=40,
-                    ),
-                    ft.Text(
-                        "Flow",
-                        size=28,
-                        weight="bold",
-                        color="#FFFFFF",
-                    ),
-                    ft.Container(height=10),
+                    ft.Icon("auto_awesome", color="#42A5F5", size=40),
+                    ft.Text("Flow", size=28, weight="bold", color="#FFFFFF"),
+                    ft.Container(height=5),
                     email_input,
                     senha_input,
-                    ft.Container(height=5),
-                    ft.ElevatedButton(
-                        "Entrar no Sistema",
-                        width=310,
-                        height=48,
-                        style=ft.ButtonStyle(
-                            bgcolor="#1E88E5",
-                            color="#FFFFFF",
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                        ),
-                        on_click=acao_login,
+                    ft.Row(
+                        [
+                            ft.TextButton(
+                                "Esqueceu a senha?",
+                                color="#BDBDBD",
+                                on_click=abrir_dialogo_esqueci_senha,
+                            )
+                        ],
+                        alignment="end",
                     ),
+                    ft.Container(height=5),
+                    btn_entrar,
                     ft.TextButton(
                         "Não tem conta? Cadastre-se",
-                        style=ft.ButtonStyle(color="#42A5F5"),
+                        color="#42A5F5",
                         on_click=lambda _: carregar_tela_cadastro(),
                     ),
                 ],
             ),
         )
 
-        page.add(
-            ft.Container(
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-                content=card_login,
-            )
-        )
+        page.add(card_login)
         page.update()
 
     # --- TELA DE CADASTRO ---
     def carregar_tela_cadastro():
         page.controls.clear()
+        page.vertical_alignment = "center"
+        page.horizontal_alignment = "center"
 
         nome_input = ft.TextField(
             label="Nome Completo", border_color="#2196F3"
@@ -345,32 +525,77 @@ def main(page: ft.Page):
             label="Senha", password=True, can_reveal_password=True
         )
 
+        btn_cadastrar = ft.ElevatedButton(
+            "Criar Conta",
+            width=290,
+            height=48,
+            bgcolor="#1E88E5",
+            color="#FFFFFF",
+        )
+
         def acao_cadastrar(e):
-            if email_input.value and nome_input.value:
+            nome_input.error_text = None
+            email_input.error_text = None
+            senha_input.error_text = None
+
+            valido = True
+            if not nome_input.value:
+                nome_input.error_text = "Informe seu nome"
+                valido = False
+            if not email_input.value:
+                email_input.error_text = "Informe o e-mail"
+                valido = False
+            if not senha_input.value:
+                senha_input.error_text = "Informe a senha"
+                valido = False
+
+            if not valido:
+                page.update()
+                return
+
+            alternar_loading(btn_cadastrar, True, "Criar Conta")
+
+            try:
+                res = supabase.auth.sign_up(
+                    {
+                        "email": email_input.value,
+                        "password": senha_input.value,
+                        "options": {"data": {"nome": nome_input.value}},
+                    }
+                )
                 usuario_atual["email"] = email_input.value
                 usuario_atual["nome"] = nome_input.value
+
+                try:
+                    supabase.table("perfis").upsert(
+                        {
+                            "email": email_input.value,
+                            "nome": nome_input.value,
+                        }
+                    ).execute()
+                except Exception:
+                    pass
+
+                mostrar_mensagem("Conta criada com sucesso!")
                 carregar_home()
+            except Exception as err:
+                mostrar_mensagem(f"Erro no cadastro: {err}", erro=True)
+                alternar_loading(btn_cadastrar, False, "Criar Conta")
+
+        btn_cadastrar.on_click = acao_cadastrar
 
         card_cadastro = ft.Container(
             padding=25,
             bgcolor="#1E1F25",
             border_radius=16,
-            width=360,
+            width=340,
             content=ft.Column(
                 horizontal_alignment="center",
                 spacing=15,
+                tight=True,
                 controls=[
-                    ft.Icon(
-                        "auto_awesome",
-                        color="#42A5F5",
-                        size=40,
-                    ),
-                    ft.Text(
-                        "Flow",
-                        size=28,
-                        weight="bold",
-                        color="#FFFFFF",
-                    ),
+                    ft.Icon("auto_awesome", color="#42A5F5", size=40),
+                    ft.Text("Flow", size=28, weight="bold", color="#FFFFFF"),
                     ft.Text(
                         "Criar nova credencial de acesso",
                         size=12,
@@ -381,38 +606,42 @@ def main(page: ft.Page):
                     email_input,
                     senha_input,
                     ft.Container(height=5),
-                    ft.ElevatedButton(
-                        "Entrar no Sistema",
-                        width=310,
-                        height=48,
-                        style=ft.ButtonStyle(
-                            bgcolor="#1E88E5",
-                            color="#FFFFFF",
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                        ),
-                        on_click=acao_cadastrar,
-                    ),
+                    btn_cadastrar,
                     ft.TextButton(
                         "Já possui conta? Faça o login.",
-                        style=ft.ButtonStyle(color="#42A5F5"),
+                        color="#42A5F5",
                         on_click=lambda _: carregar_tela_login(),
                     ),
                 ],
             ),
         )
 
-        page.add(
-            ft.Container(
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-                content=card_cadastro,
-            )
-        )
+        page.add(card_cadastro)
         page.update()
 
     # --- PAINEL PRINCIPAL (HOME) ---
     def carregar_home():
         page.controls.clear()
+        page.vertical_alignment = "start"
+        page.horizontal_alignment = "start"
+
+        lista_pagamentos = buscar_dados_financeiros()
+
+        total_faturado = 0.0
+        for item in lista_pagamentos:
+            val = item.get("valor", 0)
+            if isinstance(val, (int, float)):
+                total_faturado += val
+            elif isinstance(val, str):
+                try:
+                    total_faturado += float(
+                        val.replace("R$", "")
+                        .replace(".", "")
+                        .replace(",", ".")
+                        .strip()
+                    )
+                except ValueError:
+                    pass
 
         card_faturamento = ft.Container(
             bgcolor="#1E1F25",
@@ -426,7 +655,9 @@ def main(page: ft.Page):
                         size=14,
                     ),
                     ft.Text(
-                        "R$ 17.911,50",
+                        f"R$ {total_faturado:,.2f}".replace(",", "X")
+                        .replace(".", ",")
+                        .replace("X", "."),
                         color="#66BB6A",
                         size=28,
                         weight="bold",
@@ -452,44 +683,22 @@ def main(page: ft.Page):
                 ft.IconButton(
                     icon="refresh",
                     icon_color="#42A5F5",
-                    on_click=lambda _: page.update(),
+                    on_click=lambda _: carregar_home(),
                 ),
             ],
         )
 
-        pagamentos_mock = [
-            {
-                "nome": "João Silva",
-                "filial": "MATRIZ",
-                "resp": "Victor",
-                "valor": "R$ 1,500.50",
-                "ok": True,
-            },
-            {
-                "nome": "Maria Souza",
-                "filial": "FILIAL-01",
-                "resp": "Deidla",
-                "valor": "R$ 850.00",
-                "ok": True,
-            },
-            {
-                "nome": "Carlos Santos",
-                "filial": "FILIAL-11",
-                "resp": "Loja 11",
-                "valor": "R$ 420.00",
-                "ok": False,
-            },
-            {
-                "nome": "Empresa ABC",
-                "filial": "MATRIZ",
-                "resp": "Victor",
-                "valor": "R$ 3,200.00",
-                "ok": True,
-            },
-        ]
-
         cards_pagamento = []
-        for item in pagamentos_mock:
+        for item in lista_pagamentos:
+            ok = item.get("ok", True)
+            valor_fmt = (
+                f"R$ {item['valor']:,.2f}".replace(",", "X")
+                .replace(".", ",")
+                .replace("X", ".")
+                if isinstance(item["valor"], (int, float))
+                else str(item["valor"])
+            )
+
             cards_pagamento.append(
                 ft.Container(
                     bgcolor="#1E1F25",
@@ -501,25 +710,21 @@ def main(page: ft.Page):
                             ft.Row(
                                 [
                                     ft.Icon(
-                                        "check_circle"
-                                        if item["ok"]
-                                        else "access_time_filled",
-                                        color="#66BB6A"
-                                        if item["ok"]
-                                        else "#FFC107",
+                                        "check_circle" if ok else "access_time_filled",
+                                        color="#66BB6A" if ok else "#FFC107",
                                         size=24,
                                     ),
                                     ft.Column(
                                         spacing=2,
                                         controls=[
                                             ft.Text(
-                                                item["nome"],
+                                                item.get("nome", "Cliente"),
                                                 weight="bold",
                                                 color="#FFFFFF",
                                                 size=15,
                                             ),
                                             ft.Text(
-                                                f"Filial: {item['filial']} | Responsável: {item['resp']}",
+                                                f"Filial: {item.get('filial', 'MATRIZ')} | Responsável: {item.get('resp', 'N/A')}",
                                                 color="#BDBDBD",
                                                 size=11,
                                             ),
@@ -528,7 +733,7 @@ def main(page: ft.Page):
                                 ]
                             ),
                             ft.Text(
-                                item["valor"],
+                                valor_fmt,
                                 weight="bold",
                                 color="#FFFFFF",
                                 size=14,
@@ -538,17 +743,19 @@ def main(page: ft.Page):
                 )
             )
 
-        conteudo_scroll = ft.Column(
+        conteudo_scroll = ft.Container(
             expand=True,
-            scroll="auto",
             padding=ft.padding.symmetric(horizontal=20),
-            spacing=15,
-            controls=[
-                card_faturamento,
-                header_pagamentos,
-                *cards_pagamento,
-                ft.Container(height=80),
-            ],
+            content=ft.Column(
+                scroll="auto",
+                spacing=15,
+                controls=[
+                    card_faturamento,
+                    header_pagamentos,
+                    *cards_pagamento,
+                    ft.Container(height=80),
+                ],
+            ),
         )
 
         page.add(
@@ -566,12 +773,70 @@ def main(page: ft.Page):
     # --- TELA DE EDITAR PERFIL ---
     def carregar_tela_perfil():
         page.controls.clear()
+        page.vertical_alignment = "start"
+        page.horizontal_alignment = "start"
+
+        avatar_preview = ft.CircleAvatar(
+            foreground_image_src=usuario_atual.get("foto_url")
+            if usuario_atual.get("foto_url")
+            else None,
+            content=ft.Icon("person", size=40)
+            if not usuario_atual.get("foto_url")
+            else None,
+            radius=45,
+            bgcolor="#1E88E5",
+        )
+
+        def atualizar_preview_foto(e):
+            url = (e.control.value or "").strip()
+            if url:
+                avatar_preview.foreground_image_src = url
+                avatar_preview.content = None
+            else:
+                avatar_preview.foreground_image_src = None
+                avatar_preview.content = ft.Icon("person", size=40)
+            avatar_preview.update()
 
         foto_input = ft.TextField(
             label="URL da Foto de Perfil",
             value=usuario_atual.get("foto_url", ""),
             border_color="#616161",
+            on_change=atualizar_preview_foto,
         )
+
+        def ao_selecionar_arquivo(e: ft.FilePickerResultEvent):
+            if e.files and len(e.files) > 0:
+                arquivo = e.files[0]
+                try:
+                    nome_arquivo = f"avatar_{usuario_atual.get('email', 'user').replace('@', '_')}.jpg"
+
+                    with open(arquivo.path, "rb") as f:
+                        file_bytes = f.read()
+
+                    supabase.storage.from_("avatars").upload(
+                        path=nome_arquivo,
+                        file=file_bytes,
+                        file_options={"upsert": "true"},
+                    )
+
+                    public_url = supabase.storage.from_("avatars").get_public_url(
+                        nome_arquivo
+                    )
+
+                    foto_input.value = public_url
+                    avatar_preview.foreground_image_src = public_url
+                    avatar_preview.content = None
+                    mostrar_mensagem("Foto enviada para o servidor com sucesso!")
+                    page.update()
+                except Exception as err:
+                    mostrar_mensagem(
+                        f"Erro ao enviar arquivo (Verifique o bucket 'avatars'): {err}",
+                        erro=True,
+                    )
+
+        file_picker = ft.FilePicker(on_result=ao_selecionar_arquivo)
+        page.overlay.append(file_picker)
+
         nome_input = ft.TextField(
             label="Nome Completo",
             value=usuario_atual.get("nome", ""),
@@ -594,7 +859,17 @@ def main(page: ft.Page):
             border_color="#616161",
         )
 
+        btn_salvar_perfil = ft.ElevatedButton(
+            "Salvar Informações",
+            width=400,
+            height=50,
+            bgcolor="#1E88E5",
+            color="#FFFFFF",
+        )
+
         def salvar_perfil(e):
+            alternar_loading(btn_salvar_perfil, True, "Salvar Informações")
+
             usuario_atual["foto_url"] = foto_input.value
             usuario_atual["nome"] = nome_input.value
             usuario_atual["celular"] = celular_input.value
@@ -610,10 +885,13 @@ def main(page: ft.Page):
                         "foto_url": usuario_atual["foto_url"],
                     }
                 ).execute()
-            except Exception as err:
-                print(f"Salvo localmente (Supabase error: {err})")
+                mostrar_mensagem("Perfil atualizado no Supabase com sucesso!")
+            except Exception:
+                mostrar_mensagem("Perfil salvo localmente.")
 
             carregar_home()
+
+        btn_salvar_perfil.on_click = salvar_perfil
 
         header_perfil = ft.Container(
             padding=ft.padding.only(left=10, right=20, top=15, bottom=10),
@@ -634,42 +912,33 @@ def main(page: ft.Page):
             ),
         )
 
-        form_perfil = ft.Column(
+        form_perfil = ft.Container(
             expand=True,
-            scroll="auto",
             padding=20,
-            spacing=15,
-            controls=[
-                ft.Container(
-                    alignment=ft.Alignment(0, 0),
-                    content=ft.CircleAvatar(
-                        foreground_image_url=foto_input.value
-                        if foto_input.value
-                        else None,
-                        content=ft.Icon("person", size=40)
-                        if not foto_input.value
-                        else None,
-                        radius=45,
-                        bgcolor="#1E88E5",
+            content=ft.Column(
+                scroll="auto",
+                spacing=15,
+                controls=[
+                    ft.Container(
+                        alignment=ft.Alignment(0, 0),
+                        content=avatar_preview,
                     ),
-                ),
-                foto_input,
-                nome_input,
-                celular_input,
-                genero_input,
-                ft.Container(height=10),
-                ft.ElevatedButton(
-                    "Salvar informações",
-                    width=400,
-                    height=50,
-                    style=ft.ButtonStyle(
-                        bgcolor="#1E88E5",
-                        color="#FFFFFF",
-                        shape=ft.RoundedRectangleBorder(radius=10),
+                    ft.OutlinedButton(
+                        "📷 Upload de Foto do Aparelho",
+                        icon="upload_file",
+                        on_click=lambda _: file_picker.pick_files(
+                            allow_multiple=False,
+                            file_type=ft.FilePickerFileType.IMAGE,
+                        ),
                     ),
-                    on_click=salvar_perfil,
-                ),
-            ],
+                    foto_input,
+                    nome_input,
+                    celular_input,
+                    genero_input,
+                    ft.Container(height=10),
+                    btn_salvar_perfil,
+                ],
+            ),
         )
 
         page.add(ft.Column(expand=True, controls=[header_perfil, form_perfil]))

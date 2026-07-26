@@ -310,7 +310,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
+                alignment=ft.alignment.Center,
                 content=card_login,
             )
         )
@@ -389,7 +389,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
+                alignment=ft.alignment.Center,
                 content=card_cadastro,
             )
         )
@@ -631,7 +631,7 @@ def main(page: ft.Page):
             spacing=15,
             controls=[
                 ft.Container(
-                    alignment=ft.alignment.center,
+                    alignment=ft.alignment.Center,
                     content=ft.CircleAvatar(
                         foreground_image_url=foto_input.value
                         if foto_input.value

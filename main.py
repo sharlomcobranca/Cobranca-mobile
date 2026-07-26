@@ -12,7 +12,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def main(page: ft.Page):
     page.title = "Flow"
-    page.theme_mode = "dark"
+    page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#121318"
     page.padding = 0
     page.vertical_alignment = "start"
@@ -26,25 +26,21 @@ def main(page: ft.Page):
         "foto_url": "",
     }
 
-    # --- HELPER COMPATIBILIDADE DE DIALOGS E SNACKBARS ---
-    def abrir_componente(ctrl):
-        if hasattr(page, "open"):
-            page.open(ctrl)
-        else:
-            if isinstance(ctrl, ft.AlertDialog):
-                page.dialog = ctrl
-                ctrl.open = True
-            elif isinstance(ctrl, ft.SnackBar):
-                page.snack_bar = ctrl
-                ctrl.open = True
+    # --- HELPER DE NAVEGAÇÃO SEGURA PARA DIALOGS ---
+    def abrir_dialogo(dialog):
+        try:
+            page.dialog = dialog
+            dialog.open = True
             page.update()
+        except Exception as e:
+            print(f"Erro ao abrir dialogo: {e}")
 
-    def fechar_componente(ctrl):
-        if hasattr(page, "close"):
-            page.close(ctrl)
-        else:
-            ctrl.open = False
+    def fechar_dialogo(dialog):
+        try:
+            dialog.open = False
             page.update()
+        except Exception as e:
+            print(f"Erro ao fechar dialogo: {e}")
 
     # --- VERIFICAÇÃO DE ATUALIZAÇÃO ---
     def verificar_atualizacao():
@@ -62,8 +58,8 @@ def main(page: ft.Page):
 
                 if versao_remota and versao_remota != VERSAO_ATUAL_APP:
 
-                    def fechar_dialogo(e):
-                        fechar_componente(dialog)
+                    def acao_fechar(e):
+                        fechar_dialogo(dialog)
 
                     def abrir_download(e):
                         page.launch_url(link_download)
@@ -74,38 +70,30 @@ def main(page: ft.Page):
                             f"A versão {versao_remota} está disponível. Deseja atualizar agora?"
                         ),
                         actions=[
-                            ft.TextButton("Cancelar", on_click=fechar_dialogo),
+                            ft.TextButton("Cancelar", on_click=acao_fechar),
                             ft.ElevatedButton(
                                 "📥 Baixar Agora", on_click=abrir_download
                             ),
                         ],
                     )
-                    abrir_componente(dialog)
+                    abrir_dialogo(dialog)
         except Exception as err:
             print(f"Erro ao checar atualizações: {err}")
 
-    # --- NOTIFICAÇÕES PUSH ---
-    def inicializar_notificacoes():
-        snack = ft.SnackBar(
-            content=ft.Text("🔔 Serviço de notificações ativo."),
-            action="OK",
-        )
-        abrir_componente(snack)
-
-    # --- NAVEGAÇÃO & DRAWER (PAINEL LATERAL) ---
+    # --- NAVEGAÇÃO & DRAWER ---
     def abrir_drawer(e=None):
-        if hasattr(page, "open"):
-            page.open(page.end_drawer)
-        else:
+        try:
             page.end_drawer.open = True
             page.update()
+        except Exception as err:
+            print(f"Erro ao abrir drawer: {err}")
 
     def fechar_drawer(e=None):
-        if hasattr(page, "close"):
-            page.close(page.end_drawer)
-        else:
+        try:
             page.end_drawer.open = False
             page.update()
+        except Exception as err:
+            print(f"Erro ao fechar drawer: {err}")
 
     def abrir_perfil(e):
         fechar_drawer()
@@ -130,22 +118,22 @@ def main(page: ft.Page):
         controls=[
             ft.Container(height=20),
             ft.ListTile(
-                leading=ft.Icon("person", color="blue400"),
+                leading=ft.Icon("person", color="#42A5F5"),
                 title=ft.Text(
                     "Meu Perfil",
-                    color="white",
+                    color="#FFFFFF",
                     weight="bold",
                 ),
                 on_click=abrir_perfil,
             ),
-            ft.Divider(color="grey800"),
+            ft.Divider(color="#424242"),
             ft.Container(expand=True),
             ft.Container(
                 content=ft.ElevatedButton(
                     content=ft.Row(
                         [
-                            ft.Icon("logout", color="red400"),
-                            ft.Text("Sair", color="red400"),
+                            ft.Icon("logout", color="#EF5350"),
+                            ft.Text("Sair", color="#EF5350"),
                         ],
                         alignment="center",
                     ),
@@ -175,9 +163,9 @@ def main(page: ft.Page):
             )
             avatar_content = ft.CircleAvatar(
                 content=ft.Text(
-                    inicial, color="white", weight="bold"
+                    inicial, color="#FFFFFF", weight="bold"
                 ),
-                bgcolor="blue600",
+                bgcolor="#1E88E5",
                 radius=20,
             )
 
@@ -190,14 +178,14 @@ def main(page: ft.Page):
                         [
                             ft.Icon(
                                 "auto_awesome",
-                                color="blue400",
+                                color="#42A5F5",
                                 size=28,
                             ),
                             ft.Text(
                                 "Flow",
                                 size=24,
                                 weight="bold",
-                                color="white",
+                                color="#FFFFFF",
                             ),
                         ]
                     ),
@@ -227,22 +215,22 @@ def main(page: ft.Page):
                             controls=[
                                 ft.IconButton(
                                     icon="home_rounded",
-                                    icon_color="white",
+                                    icon_color="#FFFFFF",
                                     on_click=lambda _: carregar_home(),
                                 ),
                                 ft.IconButton(
                                     icon="chat_bubble_outline_rounded",
-                                    icon_color="grey400",
+                                    icon_color="#BDBDBD",
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
                                     icon="view_agenda_outlined",
-                                    icon_color="grey400",
+                                    icon_color="#BDBDBD",
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
                                     icon="more_horiz",
-                                    icon_color="grey400",
+                                    icon_color="#BDBDBD",
                                     on_click=abrir_drawer,
                                 ),
                             ],
@@ -256,7 +244,7 @@ def main(page: ft.Page):
                         height=56,
                         content=ft.IconButton(
                             icon="add",
-                            icon_color="black",
+                            icon_color="#000000",
                             icon_size=28,
                             on_click=lambda _: None,
                         ),
@@ -271,16 +259,16 @@ def main(page: ft.Page):
 
         email_input = ft.TextField(
             label="E-mail Corporativo",
-            border_color="blue500",
-            focused_border_color="blue400",
+            border_color="#2196F3",
+            focused_border_color="#42A5F5",
             text_size=14,
         )
         senha_input = ft.TextField(
             label="Senha",
             password=True,
             can_reveal_password=True,
-            border_color="grey700",
-            focused_border_color="blue400",
+            border_color="#616161",
+            focused_border_color="#42A5F5",
             text_size=14,
         )
 
@@ -301,14 +289,14 @@ def main(page: ft.Page):
                 controls=[
                     ft.Icon(
                         "auto_awesome",
-                        color="blue400",
+                        color="#42A5F5",
                         size=40,
                     ),
                     ft.Text(
                         "Flow",
                         size=28,
                         weight="bold",
-                        color="white",
+                        color="#FFFFFF",
                     ),
                     ft.Container(height=10),
                     email_input,
@@ -319,15 +307,15 @@ def main(page: ft.Page):
                         width=310,
                         height=48,
                         style=ft.ButtonStyle(
-                            bgcolor="blue600",
-                            color="white",
+                            bgcolor="#1E88E5",
+                            color="#FFFFFF",
                             shape=ft.RoundedRectangleBorder(radius=8),
                         ),
                         on_click=acao_login,
                     ),
                     ft.TextButton(
                         "Não tem conta? Cadastre-se",
-                        style=ft.ButtonStyle(color="blue400"),
+                        style=ft.ButtonStyle(color="#42A5F5"),
                         on_click=lambda _: carregar_tela_cadastro(),
                     ),
                 ],
@@ -337,7 +325,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.Alignment(0, 0),
+                alignment=ft.alignment.center,
                 content=card_login,
             )
         )
@@ -348,10 +336,10 @@ def main(page: ft.Page):
         page.controls.clear()
 
         nome_input = ft.TextField(
-            label="Nome Completo", border_color="blue500"
+            label="Nome Completo", border_color="#2196F3"
         )
         email_input = ft.TextField(
-            label="E-mail Corporativo", border_color="grey700"
+            label="E-mail Corporativo", border_color="#616161"
         )
         senha_input = ft.TextField(
             label="Senha", password=True, can_reveal_password=True
@@ -374,19 +362,19 @@ def main(page: ft.Page):
                 controls=[
                     ft.Icon(
                         "auto_awesome",
-                        color="blue400",
+                        color="#42A5F5",
                         size=40,
                     ),
                     ft.Text(
                         "Flow",
                         size=28,
                         weight="bold",
-                        color="white",
+                        color="#FFFFFF",
                     ),
                     ft.Text(
                         "Criar nova credencial de acesso",
                         size=12,
-                        color="grey400",
+                        color="#BDBDBD",
                     ),
                     ft.Container(height=5),
                     nome_input,
@@ -398,15 +386,15 @@ def main(page: ft.Page):
                         width=310,
                         height=48,
                         style=ft.ButtonStyle(
-                            bgcolor="blue600",
-                            color="white",
+                            bgcolor="#1E88E5",
+                            color="#FFFFFF",
                             shape=ft.RoundedRectangleBorder(radius=8),
                         ),
                         on_click=acao_cadastrar,
                     ),
                     ft.TextButton(
                         "Já possui conta? Faça o login.",
-                        style=ft.ButtonStyle(color="blue400"),
+                        style=ft.ButtonStyle(color="#42A5F5"),
                         on_click=lambda _: carregar_tela_login(),
                     ),
                 ],
@@ -416,7 +404,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.Alignment(0, 0),
+                alignment=ft.alignment.center,
                 content=card_cadastro,
             )
         )
@@ -434,12 +422,12 @@ def main(page: ft.Page):
                 controls=[
                     ft.Text(
                         "Faturamento Total (Nuvem)",
-                        color="grey400",
+                        color="#BDBDBD",
                         size=14,
                     ),
                     ft.Text(
                         "R$ 17.911,50",
-                        color="green400",
+                        color="#66BB6A",
                         size=28,
                         weight="bold",
                     ),
@@ -452,18 +440,18 @@ def main(page: ft.Page):
             controls=[
                 ft.Row(
                     [
-                        ft.Icon("description", color="grey300"),
+                        ft.Icon("description", color="#E0E0E0"),
                         ft.Text(
                             "Pagamentos",
                             size=18,
                             weight="bold",
-                            color="white",
+                            color="#FFFFFF",
                         ),
                     ]
                 ),
                 ft.IconButton(
                     icon="refresh",
-                    icon_color="blue400",
+                    icon_color="#42A5F5",
                     on_click=lambda _: page.update(),
                 ),
             ],
@@ -516,9 +504,9 @@ def main(page: ft.Page):
                                         "check_circle"
                                         if item["ok"]
                                         else "access_time_filled",
-                                        color="green400"
+                                        color="#66BB6A"
                                         if item["ok"]
-                                        else "amber500",
+                                        else "#FFC107",
                                         size=24,
                                     ),
                                     ft.Column(
@@ -527,12 +515,12 @@ def main(page: ft.Page):
                                             ft.Text(
                                                 item["nome"],
                                                 weight="bold",
-                                                color="white",
+                                                color="#FFFFFF",
                                                 size=15,
                                             ),
                                             ft.Text(
                                                 f"Filial: {item['filial']} | Responsável: {item['resp']}",
-                                                color="grey400",
+                                                color="#BDBDBD",
                                                 size=11,
                                             ),
                                         ],
@@ -542,7 +530,7 @@ def main(page: ft.Page):
                             ft.Text(
                                 item["valor"],
                                 weight="bold",
-                                color="white",
+                                color="#FFFFFF",
                                 size=14,
                             ),
                         ],
@@ -582,17 +570,17 @@ def main(page: ft.Page):
         foto_input = ft.TextField(
             label="URL da Foto de Perfil",
             value=usuario_atual.get("foto_url", ""),
-            border_color="grey700",
+            border_color="#616161",
         )
         nome_input = ft.TextField(
             label="Nome Completo",
             value=usuario_atual.get("nome", ""),
-            border_color="grey700",
+            border_color="#616161",
         )
         celular_input = ft.TextField(
             label="Celular",
             value=usuario_atual.get("celular", ""),
-            border_color="grey700",
+            border_color="#616161",
         )
         genero_input = ft.Dropdown(
             label="Gênero",
@@ -603,7 +591,7 @@ def main(page: ft.Page):
                 ft.dropdown.Option("Outro"),
                 ft.dropdown.Option("Não informado"),
             ],
-            border_color="grey700",
+            border_color="#616161",
         )
 
         def salvar_perfil(e):
@@ -625,11 +613,6 @@ def main(page: ft.Page):
             except Exception as err:
                 print(f"Salvo localmente (Supabase error: {err})")
 
-            snack = ft.SnackBar(
-                content=ft.Text("Informações salvas com sucesso!"),
-                bgcolor="green600",
-            )
-            abrir_componente(snack)
             carregar_home()
 
         header_perfil = ft.Container(
@@ -638,14 +621,14 @@ def main(page: ft.Page):
                 controls=[
                     ft.IconButton(
                         icon="arrow_back",
-                        icon_color="white",
+                        icon_color="#FFFFFF",
                         on_click=lambda _: carregar_home(),
                     ),
                     ft.Text(
                         "Editar Perfil",
                         size=20,
                         weight="bold",
-                        color="white",
+                        color="#FFFFFF",
                     ),
                 ]
             ),
@@ -658,7 +641,7 @@ def main(page: ft.Page):
             spacing=15,
             controls=[
                 ft.Container(
-                    alignment=ft.Alignment(0, 0),
+                    alignment=ft.alignment.center,
                     content=ft.CircleAvatar(
                         foreground_image_url=foto_input.value
                         if foto_input.value
@@ -667,7 +650,7 @@ def main(page: ft.Page):
                         if not foto_input.value
                         else None,
                         radius=45,
-                        bgcolor="blue600",
+                        bgcolor="#1E88E5",
                     ),
                 ),
                 foto_input,
@@ -680,8 +663,8 @@ def main(page: ft.Page):
                     width=400,
                     height=50,
                     style=ft.ButtonStyle(
-                        bgcolor="blue600",
-                        color="white",
+                        bgcolor="#1E88E5",
+                        color="#FFFFFF",
                         shape=ft.RoundedRectangleBorder(radius=10),
                     ),
                     on_click=salvar_perfil,
@@ -693,9 +676,10 @@ def main(page: ft.Page):
         page.update()
 
     # --- INICIALIZAÇÃO DA APLICAÇÃO ---
-    verificar_atualizacao()
-    inicializar_notificacoes()
+    # Renderiza primeiro a interface
     carregar_tela_login()
+    # Checa atualizações em segundo plano
+    verificar_atualizacao()
 
 
 ft.app(target=main)

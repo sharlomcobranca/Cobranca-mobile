@@ -12,7 +12,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def main(page: ft.Page):
     page.title = "Flow"
-    page.theme_mode = ft.ThemeMode.DARK
+    page.theme_mode = "dark"
     page.bgcolor = "#121318"
     page.padding = 0
     page.vertical_alignment = "start"
@@ -325,7 +325,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment(0, 0),
                 content=card_login,
             )
         )
@@ -404,7 +404,7 @@ def main(page: ft.Page):
         page.add(
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment(0, 0),
                 content=card_cadastro,
             )
         )
@@ -641,7 +641,7 @@ def main(page: ft.Page):
             spacing=15,
             controls=[
                 ft.Container(
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment(0, 0),
                     content=ft.CircleAvatar(
                         foreground_image_url=foto_input.value
                         if foto_input.value
@@ -676,9 +676,7 @@ def main(page: ft.Page):
         page.update()
 
     # --- INICIALIZAÇÃO DA APLICAÇÃO ---
-    # Renderiza primeiro a interface
     carregar_tela_login()
-    # Checa atualizações em segundo plano
     verificar_atualizacao()
 
 

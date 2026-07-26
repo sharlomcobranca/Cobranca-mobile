@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout do projeto
+      - name: 🤖 Checkout do projeto
         uses: actions/checkout@v4
 
       - name: 🐍 Configurar Python
@@ -25,7 +25,7 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: 🛠 Instalar dependências Python
+      - name: 🛠️ Instalar dependências Python
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -41,8 +41,8 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          run: |
-       flet build apk
+        run: |
+          flet build apk
 
       - name: 📦 Listar arquivos gerados
         run: |

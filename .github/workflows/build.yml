@@ -38,7 +38,10 @@ jobs:
           flet --version
 
       - name: 📱 Gerar APK
-        run: |
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          run: |
           yes | flet build apk
 
       - name: 📦 Listar arquivos gerados

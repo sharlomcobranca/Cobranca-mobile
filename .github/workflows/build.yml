@@ -12,13 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Cache nativo do Gradle (evita rebaixar dependências do Android)
+      # Configuração do Java sem busca prévia por arquivos .gradle
       - name: Configurar Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
       # Cache do Flutter
       - uses: subosito/flutter-action@v2

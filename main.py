@@ -1,6 +1,5 @@
 import flet as ft
 from supabase import create_client, Client
-import asyncio
 
 # --- CONFIGURAÇÃO INICIAL E VERSÃO ---
 VERSAO_ATUAL_APP = "1.0.0"
@@ -69,7 +68,7 @@ def main(page: ft.Page):
             print(f"Erro ao checar atualizações: {err}")
 
     # --- NOTIFICAÇÕES PUSH ---
-    async def inicializar_notificacoes():
+    def inicializar_notificacoes():
         page.snack_bar = ft.SnackBar(
             content=ft.Text("🔔 Serviço de notificações ativo."),
             action="OK",
@@ -668,7 +667,7 @@ def main(page: ft.Page):
 
     # --- INICIALIZAÇÃO DA APLICAÇÃO ---
     verificar_atualizacao()
-    asyncio.run(inicializar_notificacoes())
+    inicializar_notificacoes()
     carregar_tela_login()
 
 

@@ -1,308 +1,684 @@
 import flet as ft
 from supabase import create_client, Client
+import asyncio
 
-# ==============================================================================
-# 🎨 PALETA DE CORES PREMIUM (DARK MODE ELEGANTE)
-# ==============================================================================
-APP_NAME = "Flow"
+# --- CONFIGURAÇÃO INICIAL E VERSÃO ---
 VERSAO_ATUAL_APP = "1.0.0"
-
-C_BG_PRIMARY    = "#1A1A1A"  # Fundo principal
-C_CARD          = "#25272C"  # Cards
-C_BLUE_PRIMARY  = "#1F6FEB"  # Azul principal
-C_BLUE_HOVER    = "#2979FF"  # Azul destaque
-C_SUCCESS       = "#2ECC71"  # Verde sucesso
-C_WARNING      = "#F4B400"  # Amarelo alerta
-C_ERROR        = "#EF4444"  # Vermelho erro
-C_TEXT_MAIN     = "#F3F3F3"  # Texto principal
-C_TEXT_MUTED    = "#B9BEC7"  # Texto secundário
-C_BORDER        = "#353942"  # Bordas
 
 SUPABASE_URL = "https://vccshrmzbubwzmfdgzqi.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"
 
-try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception:
-    supabase = None
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def main(page: ft.Page):
-    page.title = f"{APP_NAME} Mobile"
+    page.title = "Flow"
     page.theme_mode = ft.ThemeMode.DARK
-    page.bgcolor = C_BG_PRIMARY
-    page.padding = 20
-    page.scroll = ft.ScrollMode.AUTO
+    page.bgcolor = "#121318"
+    page.padding = 0
+    page.vertical_alignment = ft.MainAxisAlignment.START
 
-    def checar_atualizacao():
-        if not supabase:
-            return
+    # Estado da aplicação
+    usuario_atual = {
+        "email": "",
+        "nome": "",
+        "celular": "",
+        "genero": "Não informado",
+        "foto_url": "",
+    }
+    tela_atual = "login"  # login, cadastro, home, perfil
+
+    # --- VERIFICAÇÃO DE ATUALIZAÇÃO ---
+    def verificar_atualizacao():
         try:
-            res = supabase.table("configuracoes").select("versao_apk, link_download").eq("id", 1).execute()
+            res = (
+                supabase.table("configuracoes")
+                .select("*")
+                .eq("id", 1)
+                .execute()
+            )
             if res.data:
                 config = res.data[0]
-                versao_nuvem = config.get("versao_apk")
+                versao_remota = config.get("versao_apk")
                 link_download = config.get("link_download")
 
-                if versao_nuvem and versao_nuvem != VERSAO_ATUAL_APP:
-                    dlg_atualizacao = ft.AlertDialog(
-                        bgcolor=C_CARD,
-                        title=ft.Text("🚀 Nova Atualização!", color=C_TEXT_MAIN, weight=ft.FontWeight.BOLD),
-                        content=ft.Text(f"A versão {versao_nuvem} está disponível.", color=C_TEXT_MUTED),
+                if versao_remota and versao_remota != VERSAO_ATUAL_APP:
+
+                    def fechar_dialogo(e):
+                        dialog.open = False
+                        page.update()
+
+                    def abrir_download(e):
+                        page.launch_url(link_download)
+
+                    dialog = ft.AlertDialog(
+                        title=ft.Text("🚀 Nova Atualização!"),
+                        content=ft.Text(
+                            f"A versão {versao_remota} está disponível. Deseja atualizar agora?"
+                        ),
                         actions=[
+                            ft.TextButton("Cancelar", on_click=fechar_dialogo),
                             ft.ElevatedButton(
-                                "📥 Baixar Agora",
-                                on_click=lambda e: page.launch_url(link_download),
-                                style=ft.ButtonStyle(bgcolor=C_BLUE_PRIMARY, color=C_TEXT_MAIN)
-                            )
+                                "📥 Baixar Agora", on_click=abrir_download
+                            ),
                         ],
                     )
-                    page.dialog = dlg_atualizacao
-                    dlg_atualizacao.open = True
+                    page.dialog = dialog
+                    dialog.open = True
                     page.update()
-        except Exception:
-            pass
-
-    # --------------------------------------------------------------------------
-    # 🔐 TELA DE LOGIN / CADASTRO
-    # --------------------------------------------------------------------------
-    is_cadastro = False
-
-    def alternar_modo(e):
-        nonlocal is_cadastro
-        is_cadastro = not is_cadastro
-        
-        container_nome.visible = is_cadastro
-        container_filial.visible = is_cadastro
-        btn_acao.text = "✨ Criar Conta" if is_cadastro else "🔑 Entrar no Sistema"
-        btn_alternar.text = "Já tem uma conta? Faça Login" if is_cadastro else "Não tem conta? Cadastre-se"
-        lbl_subtitulo.value = "Criar nova credencial de acesso" if is_cadastro else "Painel Gestor Mobile"
-        lbl_erro.value = ""
-        page.update()
-
-    def processar_autenticacao(e):
-        email = ent_email.value.strip()
-        senha = ent_senha.value.strip()
-        nome = ent_nome.value.strip()
-        filial = drop_filial.value
-
-        if not email or not senha or (is_cadastro and not nome):
-            lbl_erro.color = C_ERROR
-            lbl_erro.value = "Preencha todos os campos obrigatórios!"
-            page.update()
-            return
-
-        if not supabase:
-            lbl_erro.color = C_ERROR
-            lbl_erro.value = "Erro na conexão com a nuvem."
-            page.update()
-            return
-
-        btn_acao.disabled = True
-        lbl_erro.color = C_TEXT_MUTED
-        lbl_erro.value = "Processando..."
-        page.update()
-
-        try:
-            if is_cadastro:
-                auth_res = supabase.auth.sign_up({"email": email, "password": senha})
-                user_id = auth_res.user.id if auth_res.user else None
-
-                if user_id:
-                    nivel_usuario = "matriz" if filial == "MATRIZ" else "operador"
-                    supabase.table("perfis").insert({
-                        "id": user_id,
-                        "email": email,
-                        "nome": nome,
-                        "nivel": nivel_usuario,
-                        "filial_id": filial
-                    }).execute()
-
-                lbl_erro.color = C_SUCCESS
-                lbl_erro.value = "Conta criada com sucesso! Faça login."
-                alternar_modo(None)
-            else:
-                auth_res = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                user_id = auth_res.user.id if auth_res.user else None
-
-                if user_id:
-                    perfil_res = supabase.table("perfis").select("*").eq("id", user_id).execute()
-                    if perfil_res.data and len(perfil_res.data) > 0:
-                        abrir_painel_principal(perfil_res.data[0])
-                    else:
-                        # Se não achou na tabela 'perfis', cria um objeto temporário com o email do auth
-                        abrir_painel_principal({
-                            "id": user_id,
-                            "email": email,
-                            "nome": email.split("@")[0].capitalize(),
-                            "nivel": "matriz",
-                            "filial_id": "MATRIZ"
-                        })
-                else:
-                    lbl_erro.color = C_ERROR
-                    lbl_erro.value = "Falha ao autenticar usuário."
-
-        except Exception as ex:
-            lbl_erro.color = C_ERROR
-            lbl_erro.value = f"Erro: {str(ex)}"
-        
-        btn_acao.disabled = False
-        page.update()
-
-    # Campos
-    ent_nome = ft.TextField(label="Nome Completo", width=300, border_color=C_BORDER, color=C_TEXT_MAIN, focused_border_color=C_BLUE_PRIMARY)
-    container_nome = ft.Container(content=ent_nome, visible=False)
-
-    drop_filial = ft.Dropdown(
-        label="Filial de Acesso", width=300, border_color=C_BORDER, color=C_TEXT_MAIN, focused_border_color=C_BLUE_PRIMARY, value="MATRIZ",
-        options=[
-            ft.dropdown.Option("MATRIZ", "👑 Matriz Central"),
-            ft.dropdown.Option("FILIAL-01", "🏬 Filial 01"),
-            ft.dropdown.Option("FILIAL-02", "🏬 Filial 02"),
-            ft.dropdown.Option("FILIAL-11", "🏬 Filial 11"),
-        ]
-    )
-    container_filial = ft.Container(content=drop_filial, visible=False)
-
-    ent_email = ft.TextField(label="E-mail Corporativo", width=300, border_color=C_BORDER, color=C_TEXT_MAIN, focused_border_color=C_BLUE_PRIMARY)
-    ent_senha = ft.TextField(label="Senha", password=True, can_reveal_password=True, width=300, border_color=C_BORDER, color=C_TEXT_MAIN, focused_border_color=C_BLUE_PRIMARY)
-    
-    lbl_erro = ft.Text("", color=C_ERROR, size=12)
-    lbl_subtitulo = ft.Text("Painel Gestor Mobile", size=12, color=C_TEXT_MUTED)
-
-    btn_acao = ft.ElevatedButton(
-        "🔑 Entrar no Sistema", on_click=processar_autenticacao,
-        style=ft.ButtonStyle(bgcolor=C_BLUE_PRIMARY, color=C_TEXT_MAIN, shape=ft.RoundedRectangleBorder(radius=8)), width=300
-    )
-
-    btn_alternar = ft.TextButton("Não tem conta? Cadastre-se", on_click=alternar_modo, style=ft.ButtonStyle(color=C_BLUE_HOVER))
-
-    card_login = ft.Card(
-        elevation=4,
-        content=ft.Container(
-            bgcolor=C_CARD, border_radius=8,
-            content=ft.Column([
-                ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, size=44, color=C_BLUE_PRIMARY),
-                ft.Text(APP_NAME, size=24, weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN),
-                lbl_subtitulo,
-                ft.Container(height=10),
-                container_nome,
-                ent_email,
-                ent_senha,
-                container_filial,
-                lbl_erro,
-                btn_acao,
-                btn_alternar
-            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            padding=25
-        )
-    )
-
-    def reiniciar_tela_login(e=None):
-        page.clean()
-        page.add(card_login)
-        page.update()
-
-    # --------------------------------------------------------------------------
-    # 2. PAINEL PRINCIPAL
-    # --------------------------------------------------------------------------
-    def abrir_painel_principal(usuario):
-        try:
-            email_bruto = usuario.get("email") or "Usuario"
-            nome_usuario = usuario.get("nome") or email_bruto.split("@")[0].capitalize()
-            nivel_usuario = usuario.get("nivel", "matriz")
-            filial_usuario = usuario.get("filial_id", "MATRIZ")
-
-            lbl_total = ft.Text("R$ 0,00", size=26, weight=ft.FontWeight.BOLD, color=C_SUCCESS)
-            list_view = ft.ListView(spacing=10, padding=10)
-
-            def carregar_dados(e=None):
-                list_view.controls.clear()
-                if not supabase:
-                    list_view.controls.append(ft.Text("Sem conexão com o banco.", color=C_ERROR))
-                    page.update()
-                    return
-                try:
-                    query = supabase.table("pagamentos_processados").select("*")
-                    if nivel_usuario == "operador":
-                        query = query.eq("filial_id", filial_usuario)
-
-                    res = query.execute()
-                    dados = res.data or []
-
-                    total = sum(float(item.get("valor_pagamento", 0) or 0) for item in dados)
-                    lbl_total.value = f"R$ {total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-                    if not dados:
-                        list_view.controls.append(ft.Text("Nenhum registro de pagamento encontrado.", color=C_TEXT_MUTED))
-                    else:
-                        for row in dados:
-                            status = row.get("status_whatsapp", "Pendente")
-                            status_icon = ft.Icons.CHECK_CIRCLE_ROUNDED if status == "Enviado" else ft.Icons.SCHEDULE_ROUNDED
-                            status_color = C_SUCCESS if status == "Enviado" else C_WARNING
-                            valor = float(row.get("valor_pagamento", 0) or 0)
-
-                            list_view.controls.append(
-                                ft.Card(
-                                    elevation=2,
-                                    content=ft.Container(
-                                        bgcolor=C_CARD, border_radius=8,
-                                        content=ft.ListTile(
-                                            leading=ft.Icon(status_icon, color=status_color),
-                                            title=ft.Text(f"{row.get('cliente', 'Cliente')}", color=C_TEXT_MAIN, weight=ft.FontWeight.W_600),
-                                            subtitle=ft.Text(
-                                                f"Filial: {row.get('filial_id', 'N/A')} | Responsável: {row.get('responsavel', 'N/A')}",
-                                                color=C_TEXT_MUTED, size=11
-                                            ),
-                                            trailing=ft.Text(f"R$ {valor:,.2f}", weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN)
-                                        )
-                                    )
-                                )
-                            )
-                except Exception as ex:
-                    list_view.controls.append(ft.Text(f"Erro ao carregar lista: {str(ex)}", color=C_ERROR))
-                page.update()
-
-            page.clean()
-            page.add(
-                ft.Row([
-                    ft.Row([
-                        ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, size=20, color=C_BLUE_PRIMARY),
-                        ft.Text(APP_NAME, size=20, weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN),
-                    ]),
-                    ft.Text(f"[{nome_usuario}]", size=12, color=C_BLUE_HOVER, weight=ft.FontWeight.W_600)
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Divider(color=C_BORDER),
-                ft.Card(
-                    elevation=2,
-                    content=ft.Container(
-                        bgcolor=C_CARD, border_radius=8,
-                        content=ft.Column([
-                            ft.Text("Faturamento Total (Nuvem)", size=12, color=C_TEXT_MUTED),
-                            lbl_total
-                        ]), padding=20
-                    )
-                ),
-                ft.Row([
-                    ft.Text("📑 Histórico Recente", size=16, weight=ft.FontWeight.BOLD, color=C_TEXT_MAIN),
-                    ft.IconButton(icon=ft.Icons.REFRESH, icon_color=C_BLUE_PRIMARY, on_click=carregar_dados)
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Container(content=list_view, height=350),
-                ft.ElevatedButton("Sair", on_click=reiniciar_tela_login, style=ft.ButtonStyle(bgcolor=C_BORDER, color=C_TEXT_MAIN))
-            )
-            carregar_dados()
-
         except Exception as err:
-            page.clean()
-            page.add(
-                ft.Text("Ocorreu um erro ao abrir o painel:", color=C_ERROR, weight=ft.FontWeight.BOLD),
-                ft.Text(str(err), color=C_TEXT_MAIN),
-                ft.ElevatedButton("Voltar para o Login", on_click=reiniciar_tela_login)
-            )
-            page.update()
+            print(f"Erro ao checar atualizações: {err}")
 
-    page.add(card_login)
-    checar_atualizacao()
+    # --- SIMULAÇÃO DE NOTIFICAÇÕES PUSH ---
+    async def inicializar_notificacoes():
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text("🔔 Serviço de notificações ativo."),
+            action="OK",
+        )
+
+    # --- NAVEGAÇÃO & DRAWER (PAINEL LATERAL) ---
+    def fechar_drawer(e=None):
+        page.end_drawer.open = False
+        page.update()
+
+    def abrir_perfil(e):
+        fechar_drawer()
+        carregar_tela_perfil()
+
+    def fazer_logout(e):
+        fechar_drawer()
+        nonlocal usuario_atual
+        usuario_atual = {
+            "email": "",
+            "nome": "",
+            "celular": "",
+            "genero": "Não informado",
+            "foto_url": "",
+        }
+        carregar_tela_login()
+
+    # Painel Lateral
+    page.end_drawer = ft.NavigationDrawer(
+        bgcolor="#1E1F25",
+        controls=[
+            ft.Container(height=20),
+            ft.ListTile(
+                leading=ft.Icon(ft.icons.PERSON, color=ft.colors.BLUE_400),
+                title=ft.Text(
+                    "Meu Perfil",
+                    color=ft.colors.WHITE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                on_click=abrir_perfil,
+            ),
+            ft.Divider(color=ft.colors.GREY_800),
+            ft.Container(expand=True),
+            ft.Container(
+                content=ft.ElevatedButton(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.icons.LOGOUT, color=ft.colors.RED_400),
+                            ft.Text("Sair", color=ft.colors.RED_400),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.colors.RED_900_WITH_OPACITY,
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                    ),
+                    on_click=fazer_logout,
+                ),
+                padding=20,
+            ),
+        ],
+    )
+
+    # --- COMPONENTES REUTILIZÁVEIS ---
+    def criar_header_app():
+        foto_src = usuario_atual.get("foto_url")
+        if foto_src:
+            avatar_content = ft.CircleAvatar(
+                foreground_image_url=foto_src, radius=20
+            )
+        else:
+            inicial = (
+                usuario_atual.get("nome", "U")[0].upper()
+                if usuario_atual.get("nome")
+                else "U"
+            )
+            avatar_content = ft.CircleAvatar(
+                content=ft.Text(
+                    inicial, color=ft.colors.WHITE, weight=ft.FontWeight.BOLD
+                ),
+                bgcolor=ft.colors.BLUE_600,
+                radius=20,
+            )
+
+        return ft.Container(
+            padding=ft.padding.only(left=20, right=20, top=15, bottom=10),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    ft.Row(
+                        [
+                            ft.Icon(
+                                ft.icons.AUTO_AWESOME,
+                                color=ft.colors.BLUE_400,
+                                size=28,
+                            ),
+                            ft.Text(
+                                "Flow",
+                                size=24,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.colors.WHITE,
+                            ),
+                        ]
+                    ),
+                    ft.GestureDetector(
+                        on_tap=lambda _: page.show_end_drawer(page.end_drawer),
+                        content=avatar_content,
+                    ),
+                ],
+            ),
+        )
+
+    def criar_bottom_bar():
+        return ft.Container(
+            padding=ft.padding.only(bottom=20, left=15, right=15),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    # Pílula de navegação flutuante
+                    ft.Container(
+                        bgcolor="#262832",
+                        border_radius=30,
+                        padding=ft.padding.symmetric(
+                            horizontal=15, vertical=8
+                        ),
+                        content=ft.Row(
+                            spacing=15,
+                            controls=[
+                                ft.IconButton(
+                                    icon=ft.icons.HOME_ROUNDED,
+                                    icon_color=ft.colors.WHITE,
+                                    on_click=lambda _: carregar_home(),
+                                ),
+                                ft.IconButton(
+                                    icon=ft.icons.CHAT_BUBBLE_OUTLINE_ROUNDED,
+                                    icon_color=ft.colors.GREY_400,
+                                    on_click=lambda _: None,
+                                ),
+                                ft.IconButton(
+                                    icon=ft.icons.VIEW_AGENDA_OUTLINED,
+                                    icon_color=ft.colors.GREY_400,
+                                    on_click=lambda _: None,
+                                ),
+                                ft.IconButton(
+                                    icon=ft.icons.MORE_HORIZ,
+                                    icon_color=ft.colors.GREY_400,
+                                    on_click=lambda _: page.show_end_drawer(
+                                        page.end_drawer
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ),
+                    ft.Container(width=10),
+                    # Botão + Flutuante
+                    ft.Container(
+                        bgcolor="#7B93FF",
+                        border_radius=20,
+                        width=56,
+                        height=56,
+                        content=ft.IconButton(
+                            icon=ft.icons.ADD,
+                            icon_color=ft.colors.BLACK,
+                            icon_size=28,
+                            on_click=lambda _: None,
+                        ),
+                    ),
+                ],
+            ),
+        )
+
+    # --- TELA DE LOGIN ---
+    def carregar_tela_login():
+        page.controls.clear()
+
+        email_input = ft.TextField(
+            label="E-mail Corporativo",
+            border_color=ft.colors.BLUE_500,
+            focused_border_color=ft.colors.BLUE_400,
+            text_size=14,
+        )
+        senha_input = ft.TextField(
+            label="Senha",
+            password=True,
+            can_reveal_password=True,
+            border_color=ft.colors.GREY_700,
+            focused_border_color=ft.colors.BLUE_400,
+            text_size=14,
+        )
+
+        def acao_login(e):
+            if email_input.value:
+                usuario_atual["email"] = email_input.value
+                usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
+                carregar_home()
+
+        card_login = ft.Container(
+            padding=25,
+            bgcolor="#1E1F25",
+            border_radius=16,
+            width=360,
+            content=ft.Column(
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=15,
+                controls=[
+                    ft.Icon(
+                        ft.icons.AUTO_AWESOME,
+                        color=ft.colors.BLUE_400,
+                        size=40,
+                    ),
+                    ft.Text(
+                        "Flow",
+                        size=28,
+                        weight=ft.FontWeight.BOLD,
+                        color=ft.colors.WHITE,
+                    ),
+                    ft.Container(height=10),
+                    email_input,
+                    senha_input,
+                    ft.Container(height=5),
+                    ft.ElevatedButton(
+                        "Entrar no Sistema",
+                        width=310,
+                        height=48,
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.colors.BLUE_600,
+                            color=ft.colors.WHITE,
+                            shape=ft.RoundedRectangleBorder(radius=8),
+                        ),
+                        on_click=acao_login,
+                    ),
+                    ft.TextButton(
+                        "Não tem conta? Cadastre-se",
+                        style=ft.ButtonStyle(color=ft.colors.BLUE_400),
+                        on_click=lambda _: carregar_tela_cadastro(),
+                    ),
+                ],
+            ),
+        )
+
+        page.add(
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=card_login,
+            )
+        )
+        page.update()
+
+    # --- TELA DE CADASTRO ---
+    def carregar_tela_cadastro():
+        page.controls.clear()
+
+        nome_input = ft.TextField(
+            label="Nome Completo", border_color=ft.colors.BLUE_500
+        )
+        email_input = ft.TextField(
+            label="E-mail Corporativo", border_color=ft.colors.GREY_700
+        )
+        senha_input = ft.TextField(
+            label="Senha", password=True, can_reveal_password=True
+        )
+
+        def acao_cadastrar(e):
+            if email_input.value and nome_input.value:
+                usuario_atual["email"] = email_input.value
+                usuario_atual["nome"] = nome_input.value
+                carregar_home()
+
+        card_cadastro = ft.Container(
+            padding=25,
+            bgcolor="#1E1F25",
+            border_radius=16,
+            width=360,
+            content=ft.Column(
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=15,
+                controls=[
+                    ft.Icon(
+                        ft.icons.AUTO_AWESOME,
+                        color=ft.colors.BLUE_400,
+                        size=40,
+                    ),
+                    ft.Text(
+                        "Flow",
+                        size=28,
+                        weight=ft.FontWeight.BOLD,
+                        color=ft.colors.WHITE,
+                    ),
+                    ft.Text(
+                        "Criar nova credencial de acesso",
+                        size=12,
+                        color=ft.colors.GREY_400,
+                    ),
+                    ft.Container(height=5),
+                    nome_input,
+                    email_input,
+                    senha_input,
+                    ft.Container(height=5),
+                    ft.ElevatedButton(
+                        "Entrar no Sistema",
+                        width=310,
+                        height=48,
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.colors.BLUE_600,
+                            color=ft.colors.WHITE,
+                            shape=ft.RoundedRectangleBorder(radius=8),
+                        ),
+                        on_click=acao_cadastrar,
+                    ),
+                    ft.TextButton(
+                        "Já possui conta? Faça o login.",
+                        style=ft.ButtonStyle(color=ft.colors.BLUE_400),
+                        on_click=lambda _: carregar_tela_login(),
+                    ),
+                ],
+            ),
+        )
+
+        page.add(
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=card_cadastro,
+            )
+        )
+        page.update()
+
+    # --- PAINEL PRINCIPAL (HOME) ---
+    def carregar_home():
+        page.controls.clear()
+
+        # Faturamento
+        card_faturamento = ft.Container(
+            bgcolor="#1E1F25",
+            padding=20,
+            border_radius=12,
+            content=ft.Column(
+                controls=[
+                    ft.Text(
+                        "Faturamento Total (Nuvem)",
+                        color=ft.colors.GREY_400,
+                        size=14,
+                    ),
+                    ft.Text(
+                        "R$ 17.911,50",
+                        color=ft.colors.GREEN_400,
+                        size=28,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ]
+            ),
+        )
+
+        # Seção Pagamentos
+        header_pagamentos = ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                ft.Row(
+                    [
+                        ft.Icon(
+                            ft.icons.DESCRIPTION, color=ft.colors.GREY_300
+                        ),
+                        ft.Text(
+                            "Pagamentos",
+                            size=18,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.colors.WHITE,
+                        ),
+                    ]
+                ),
+                ft.IconButton(
+                    icon=ft.icons.REFRESH,
+                    icon_color=ft.colors.BLUE_400,
+                    on_click=lambda _: page.update(),
+                ),
+            ],
+        )
+
+        # Lista de Pagamentos
+        pagamentos_mock = [
+            {
+                "nome": "João Silva",
+                "filial": "MATRIZ",
+                "resp": "Victor",
+                "valor": "R$ 1,500.50",
+                "ok": True,
+            },
+            {
+                "nome": "Maria Souza",
+                "filial": "FILIAL-01",
+                "resp": "Deidla",
+                "valor": "R$ 850.00",
+                "ok": True,
+            },
+            {
+                "nome": "Carlos Santos",
+                "filial": "FILIAL-11",
+                "resp": "Loja 11",
+                "valor": "R$ 420.00",
+                "ok": False,
+            },
+            {
+                "nome": "Empresa ABC",
+                "filial": "MATRIZ",
+                "resp": "Victor",
+                "valor": "R$ 3,200.00",
+                "ok": True,
+            },
+        ]
+
+        cards_pagamento = []
+        for item in pagamentos_mock:
+            cards_pagamento.append(
+                ft.Container(
+                    bgcolor="#1E1F25",
+                    padding=15,
+                    border_radius=10,
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Row(
+                                [
+                                    ft.Icon(
+                                        ft.icons.CHECK_CIRCLE
+                                        if item["ok"]
+                                        else ft.icons.ACCESS_TIME_FILLED,
+                                        color=ft.colors.GREEN_400
+                                        if item["ok"]
+                                        else ft.colors.AMBER_500,
+                                        size=24,
+                                    ),
+                                    ft.Column(
+                                        spacing=2,
+                                        controls=[
+                                            ft.Text(
+                                                item["nome"],
+                                                weight=ft.FontWeight.BOLD,
+                                                color=ft.colors.WHITE,
+                                                size=15,
+                                            ),
+                                            ft.Text(
+                                                f"Filial: {item['filial']} | Responsável: {item['resp']}",
+                                                color=ft.colors.GREY_400,
+                                                size=11,
+                                            ),
+                                        ],
+                                    ),
+                                ]
+                            ),
+                            ft.Text(
+                                item["valor"],
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.colors.WHITE,
+                                size=14,
+                            ),
+                        ],
+                    ),
+                )
+            )
+
+        conteudo_scroll = ft.Column(
+            expand=True,
+            scroll=ft.ScrollMode.AUTO,
+            padding=ft.padding.symmetric(horizontal=20),
+            spacing=15,
+            controls=[
+                card_faturamento,
+                header_pagamentos,
+                *cards_pagamento,
+                ft.Container(height=80),  # Espaço para o menu flutuante não cobrir
+            ],
+        )
+
+        page.add(
+            ft.Column(
+                expand=True,
+                controls=[
+                    criar_header_app(),
+                    conteudo_scroll,
+                    criar_bottom_bar(),
+                ],
+            )
+        )
+        page.update()
+
+    # --- TELA DE EDITAR PERFIL ---
+    def carregar_tela_perfil():
+        page.controls.clear()
+
+        foto_input = ft.TextField(
+            label="URL da Foto de Perfil",
+            value=usuario_atual.get("foto_url", ""),
+            border_color=ft.colors.GREY_700,
+        )
+        nome_input = ft.TextField(
+            label="Nome Completo",
+            value=usuario_atual.get("nome", ""),
+            border_color=ft.colors.GREY_700,
+        )
+        celular_input = ft.TextField(
+            label="Celular",
+            value=usuario_atual.get("celular", ""),
+            border_color=ft.colors.GREY_700,
+        )
+        genero_input = ft.Dropdown(
+            label="Gênero",
+            value=usuario_atual.get("genero", "Não informado"),
+            options=[
+                ft.dropdown.Option("Masculino"),
+                ft.dropdown.Option("Feminino"),
+                ft.dropdown.Option("Outro"),
+                ft.dropdown.Option("Não informado"),
+            ],
+            border_color=ft.colors.GREY_700,
+        )
+
+        def salvar_perfil(e):
+            usuario_atual["foto_url"] = foto_input.value
+            usuario_atual["nome"] = nome_input.value
+            usuario_atual["celular"] = celular_input.value
+            usuario_atual["genero"] = genero_input.value
+
+            # Persiste no Supabase caso exista tabela 'perfis'
+            try:
+                supabase.table("perfis").upsert(
+                    {
+                        "email": usuario_atual["email"],
+                        "nome": usuario_atual["nome"],
+                        "celular": usuario_atual["celular"],
+                        "genero": usuario_atual["genero"],
+                        "foto_url": usuario_atual["foto_url"],
+                    }
+                ).execute()
+            except Exception as err:
+                print(f"Salvo localmente (Supabase error: {err})")
+
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Informações salvas com sucesso!"),
+                bgcolor=ft.colors.GREEN_600,
+            )
+            page.snack_bar.open = True
+            carregar_home()
+
+        header_perfil = ft.Container(
+            padding=ft.padding.only(left=10, right=20, top=15, bottom=10),
+            content=ft.Row(
+                controls=[
+                    ft.IconButton(
+                        icon=ft.icons.ARROW_BACK,
+                        icon_color=ft.colors.WHITE,
+                        on_click=lambda _: carregar_home(),
+                    ),
+                    ft.Text(
+                        "Editar Perfil",
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                        color=ft.colors.WHITE,
+                    ),
+                ]
+            ),
+        )
+
+        form_perfil = ft.Column(
+            expand=True,
+            scroll=ft.ScrollMode.AUTO,
+            padding=20,
+            spacing=15,
+            controls=[
+                ft.Container(
+                    alignment=ft.alignment.center,
+                    content=ft.CircleAvatar(
+                        foreground_image_url=foto_input.value
+                        if foto_input.value
+                        else None,
+                        content=ft.Icon(ft.icons.PERSON, size=40)
+                        if not foto_input.value
+                        else None,
+                        radius=45,
+                        bgcolor=ft.colors.BLUE_600,
+                    ),
+                ),
+                foto_input,
+                nome_input,
+                celular_input,
+                genero_input,
+                ft.Container(height=10),
+                ft.ElevatedButton(
+                    "Salvar informações",
+                    width=400,
+                    height=50,
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.colors.BLUE_600,
+                        color=ft.colors.WHITE,
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                    ),
+                    on_click=salvar_perfil,
+                ),
+            ],
+        )
+
+        page.add(ft.Column(expand=True, controls=[header_perfil, form_perfil]))
+        page.update()
+
+    # --- INICIALIZAÇÃO DA APLICAÇÃO ---
+    verificar_atualizacao()
+    asyncio.run(inicializar_notificacoes())
+    carregar_tela_login()
 
 
 ft.app(target=main)

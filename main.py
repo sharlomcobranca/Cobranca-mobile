@@ -3,7 +3,6 @@ import threading
 import flet as ft
 from supabase import create_client, Client
 
-# --- TRATAMENTO SEGURO DE VARIÁVEIS DE AMBIENTE ---
 try:
     from dotenv import load_dotenv
     if os.path.exists(".env"):
@@ -33,14 +32,8 @@ usuario_atual = {
 }
 
 def carregar_dados_usuario(email_user: str):
-    if not email_user:
+    if not email_user or not supabase:
         return
-    usuario_atual["email"] = email_user
-    usuario_atual["nome"] = email_user.split("@")[0].capitalize()
-
-    if not supabase:
-        return
-
     try:
         res = supabase.table("perfis").select("*").eq("email", email_user).execute()
         if res.data:
@@ -85,7 +78,6 @@ def verificar_atualizacao(page: ft.Page):
         except Exception as err:
             print(f"Erro ao verificar atualização: {err}")
 
-    # Executa em segundo plano para não congelar a interface (evita tela preta)
     threading.Thread(target=checar, daemon=True).start()
 
 def buscar_dados_financeiros():
@@ -408,15 +400,27 @@ def perfil_view(page: ft.Page) -> ft.View:
     )
 
 def main(page: ft.Page):
-    try:
-        page.title = "Flow"
-        page.theme_mode = "dark"
-        page.padding = 0
+    page.title = "Flow"
+    page.theme_mode = "dark"
+    page.padding = 0
 
-        # Dispara a checagem em background para não travar a UI na inicialização
-        verificar_atualizacao(page)
+    # Adiciona imediatamente um indicador visual de carregamento na tela para evitar a tela preta
+    page.views.append(
+        ft.View(
+            route="/",
+            vertical_alignment="center",
+            horizontal_alignment="center",
+            controls=[
+                ft.ProgressRing(width=40, height=40, stroke_width=4, color="#42A5F5"),
+                ft.Container(height=10),
+                ft.Text("Carregando o Flow...", color="#BDBDBD", size=14)
+            ]
+        )
+    )
+    page.update()
 
-        def route_change(route_event):
+    def route_change(route_event):
+        try:
             page.views.clear()
             email_salvo = page.client_storage.get("user_email")
             if email_salvo:
@@ -435,22 +439,22 @@ def main(page: ft.Page):
             elif page.route == "/perfil":
                 page.views.append(perfil_view(page))
             page.update()
+        except Exception as err:
+            print(f"Erro na rota: {err}")
 
-        def view_pop(view_event):
+    def view_pop(view_event):
+        if len(page.views) > 1:
             page.views.pop()
-            if page.views:
-                top_view = page.views[-1]
-                page.go(top_view.route)
+            top_view = page.views[-1]
+            page.go(top_view.route)
 
-        page.on_route_change = route_change
-        page.on_view_pop = view_pop
-        page.go(page.route or "/")
+    page.on_route_change = route_change
+    page.on_view_pop = view_pop
 
-    except Exception as e:
-        import traceback
-        err_msg = traceback.format_exc()
-        page.clean()
-        page.add(ft.ListView(expand=True, controls=[ft.Text("ERRO:", color="red"), ft.Text(err_msg, color="white")]))
-        page.update()
+    # Dispara a verificação em background após a UI estar montada
+    verificar_atualizacao(page)
+
+    # Força a navegação inicial segura
+    page.go("/login" if not page.client_storage.get("user_email") else "/home")
 
 ft.app(target=main)

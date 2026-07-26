@@ -27,7 +27,7 @@ jobs:
     - name: 🐦 Configurar Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.6'
+        flutter-version: '3.22.2'
         channel: 'stable'
         cache: true
 
@@ -39,7 +39,7 @@ jobs:
 
     - name: 📱 Compilar APK Android
       run: |
-        flet build apk --output build/apk
+        yes | flet build apk --output build/apk
 
     - name: 🚀 Enviar APK gerado
       uses: actions/upload-artifact@v4

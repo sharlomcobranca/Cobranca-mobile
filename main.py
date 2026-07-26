@@ -1,4 +1,5 @@
 import os
+import threading
 import flet as ft
 from supabase import create_client, Client
 
@@ -10,7 +11,7 @@ try:
 except Exception:
     pass
 
-VERSAO_ATUAL_APP = "1.0.0"
+VERSAO_ATUAL_APP = "1.1.0"
 
 SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vccshrmzbubwzmfdgzqi.supabase.co"
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"
@@ -53,6 +54,39 @@ def carregar_dados_usuario(email_user: str):
             })
     except Exception as err:
         print(f"Erro ao buscar perfil: {err}")
+
+def verificar_atualizacao(page: ft.Page):
+    def checar():
+        if not supabase:
+            return
+        try:
+            res = supabase.table("configuracoes").select("versao_recente, url_download").eq("id", 1).execute()
+            if res.data:
+                config = res.data[0]
+                versao_recente = config.get("versao_recente")
+                url_download = config.get("url_download")
+                
+                if versao_recente and versao_recente != VERSAO_ATUAL_APP:
+                    def baixar_atualizacao(e):
+                        if url_download:
+                            page.launch_url(url_download)
+
+                    dialog_atualizacao = ft.AlertDialog(
+                        title=ft.Text("Nova Atualização Disponível!"),
+                        content=ft.Text(f"Uma nova versão ({versao_recente}) do Flow está disponível para download."),
+                        actions=[
+                            ft.TextButton("Depois", on_click=lambda _: setattr(dialog_atualizacao, "open", False) or page.update()),
+                            ft.ElevatedButton("Atualizar Agora", bgcolor="#1E88E5", color="#FFFFFF", on_click=baixar_atualizacao),
+                        ],
+                    )
+                    page.dialog = dialog_atualizacao
+                    dialog_atualizacao.open = True
+                    page.update()
+        except Exception as err:
+            print(f"Erro ao verificar atualização: {err}")
+
+    # Executa em segundo plano para não congelar a interface (evita tela preta)
+    threading.Thread(target=checar, daemon=True).start()
 
 def buscar_dados_financeiros():
     if supabase:
@@ -330,7 +364,6 @@ def perfil_view(page: ft.Page) -> ft.View:
     celular_input = ft.TextField(label="Celular", value=usuario_atual.get("celular", ""))
     status_txt = ft.Text("", size=12, color="#42A5F5")
 
-    # FilePicker declarado e isolado exclusivamente para a tela de perfil
     file_picker = ft.FilePicker()
 
     def on_file_picked(e: ft.FilePickerResultEvent):
@@ -341,8 +374,6 @@ def perfil_view(page: ft.Page) -> ft.View:
             page.update()
 
     file_picker.on_result = on_file_picked
-    
-    # Adiciona o picker apenas no overlay da página enquanto estiver na view de perfil
     page.overlay.append(file_picker)
 
     def salvar(e):
@@ -381,6 +412,9 @@ def main(page: ft.Page):
         page.title = "Flow"
         page.theme_mode = "dark"
         page.padding = 0
+
+        # Dispara a checagem em background para não travar a UI na inicialização
+        verificar_atualizacao(page)
 
         def route_change(route_event):
             page.views.clear()

@@ -2,7 +2,7 @@ import os
 import flet as ft
 from supabase import create_client, Client
 
-# --- TRATAMENTO SEGURO DE VARIÁVEIS DE AMBIENTE (EVITA O ERRO NO ANDROID) ---
+# --- TRATAMENTO SEGURO DE VARIÁVEIS DE AMBIENTE ---
 try:
     from dotenv import load_dotenv
     if os.path.exists(".env"):
@@ -169,7 +169,7 @@ def criar_bottom_bar(page: ft.Page):
     )
 
 
-# --- VIEWS (TELAS) ---
+# --- TELAS (VIEWS) ---
 
 def login_view(page: ft.Page) -> ft.View:
     email_input = ft.TextField(label="E-mail Corporativo", border_color="#2196F3", text_size=14)
@@ -591,7 +591,7 @@ def perfil_view(page: ft.Page, file_picker: ft.FilePicker) -> ft.View:
                     avatar_preview.foreground_image_src = public_url
                     avatar_preview.content = None
 
-                snack = ft.SnackBar(content=ft.Text("Foto selecionada!"), bgcolor="#43A047", open=True)
+                snack = ft.SnackBar(content=ft.Text("Foto alterada com sucesso!"), bgcolor="#43A047", open=True)
                 page.snack_bar = snack
                 page.update()
             except Exception as err:
@@ -642,7 +642,7 @@ def perfil_view(page: ft.Page, file_picker: ft.FilePicker) -> ft.View:
             controls=[
                 ft.Container(alignment=ft.Alignment(0, 0), content=avatar_preview),
                 ft.OutlinedButton(
-                    "📷 Upload de Foto do Aparelho",
+                    "📷 Abrir Galeria do Celular",
                     icon="upload_file",
                     on_click=lambda _: file_picker.pick_files(file_type=ft.FilePickerFileType.IMAGE),
                 ),

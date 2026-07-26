@@ -2,8 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,45 +10,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🤖 Checkout do projeto
-        uses: actions/checkout@v4
+    - name: 📥 Checkout do projeto
+      uses: actions/checkout@v4
 
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: ☕ Configurar Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "17"
+    - name: ☕ Configurar Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-      - name: 🛠️ Instalar dependências Python
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install "flet[all]"
+    - name: 🐦 Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        cache: true
 
-      - name: 🔍 Verificar versões
-        run: |
-          python --version
-          pip show flet
-          flet --version
+    - name: 📦 Instalar dependências Python
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flet
 
-      - name: 📱 Gerar APK
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: |
-          flet build apk
+    - name: 🔍 Verificando ambiente
+      run: |
+        python --version
+        flutter --version
+        flet --version
 
-      - name: 📦 Listar arquivos gerados
-        run: |
-          find build
+    - name: 📱 Gerar APK
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      run: |
+        flet build apk
 
-      - name: 🚀 Enviar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Flow-APK
-          path: build/**/*.apk
+    - name: 📂 Listar arquivos gerados
+      run: |
+        find build -name "*.apk"
+
+    - name: 🚀 Enviar APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Flow-APK
+        path: build/**/outputs/apk/release/*.apk

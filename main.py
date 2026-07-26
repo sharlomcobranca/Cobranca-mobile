@@ -22,6 +22,11 @@ try:
 except Exception as e:
     print(f"Aviso Supabase: {e}")
 
+# Armazenamento em memória seguro para compatibilidade mobile total
+app_storage = {
+    "user_email": None
+}
+
 usuario_atual = {
     "id": "",
     "email": "",
@@ -200,7 +205,7 @@ def login_view(page: ft.Page) -> ft.View:
             return
         usuario_atual["email"] = email_input.value
         usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
-        page.client_storage.set("user_email", email_input.value)
+        app_storage["user_email"] = email_input.value
         page.go("/home")
 
     btn_entrar.on_click = acao_login
@@ -234,7 +239,7 @@ def cadastro_view(page: ft.Page) -> ft.View:
     def acao_cadastrar(e):
         usuario_atual["email"] = email_input.value
         usuario_atual["nome"] = nome_input.value
-        page.client_storage.set("user_email", email_input.value)
+        app_storage["user_email"] = email_input.value
         page.go("/home")
 
     btn_cadastrar.on_click = acao_cadastrar
@@ -276,7 +281,7 @@ def home_view(page: ft.Page) -> ft.View:
                     content=ft.Row([ft.Icon("logout", color="#EF5350"), ft.Text("Sair", color="#EF5350")], alignment="center"),
                     bgcolor="#2A1215" if is_dark else "#FFEBEE",
                     on_click=lambda _: (
-                        page.client_storage.remove("user_email"),
+                        app_storage.update({"user_email": None}),
                         usuario_atual.clear(),
                         page.go("/login")
                     ),
@@ -404,7 +409,6 @@ def main(page: ft.Page):
     page.theme_mode = "dark"
     page.padding = 0
 
-    # Adiciona imediatamente um indicador visual de carregamento na tela para evitar a tela preta
     page.views.append(
         ft.View(
             route="/",
@@ -422,7 +426,7 @@ def main(page: ft.Page):
     def route_change(route_event):
         try:
             page.views.clear()
-            email_salvo = page.client_storage.get("user_email")
+            email_salvo = app_storage.get("user_email")
             if email_salvo:
                 carregar_dados_usuario(email_salvo)
 
@@ -451,10 +455,7 @@ def main(page: ft.Page):
     page.on_route_change = route_change
     page.on_view_pop = view_pop
 
-    # Dispara a verificação em background após a UI estar montada
     verificar_atualizacao(page)
-
-    # Força a navegação inicial segura
-    page.go("/login" if not page.client_storage.get("user_email") else "/home")
+    page.go("/login" if not app_storage.get("user_email") else "/home")
 
 ft.app(target=main)

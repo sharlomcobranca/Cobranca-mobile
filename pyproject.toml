@@ -1,0 +1,20 @@
+[project]
+name = "Flow"
+version = "1.0.0"
+description = "Sistema de Cobrança Flow"
+
+dependencies = [
+    "flet==0.28.3",
+    "supabase==2.15.3",
+    "python-dotenv==1.1.1"
+]
+
+[tool.flet]
+
+org = "com.flow"
+
+product = "Flow"
+
+company = "Victor Mota"
+
+copyright = "2026"

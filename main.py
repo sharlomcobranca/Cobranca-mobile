@@ -102,27 +102,27 @@ def main(page: ft.Page):
         controls=[
             ft.Container(height=20),
             ft.ListTile(
-                leading=ft.Icon("person", color=ft.colors.BLUE_400),
+                leading=ft.Icon("person", color=ft.Colors.BLUE_400),
                 title=ft.Text(
                     "Meu Perfil",
-                    color=ft.colors.WHITE,
+                    color=ft.Colors.WHITE,
                     weight=ft.FontWeight.BOLD,
                 ),
                 on_click=abrir_perfil,
             ),
-            ft.Divider(color=ft.colors.GREY_800),
+            ft.Divider(color=ft.Colors.GREY_800),
             ft.Container(expand=True),
             ft.Container(
                 content=ft.ElevatedButton(
                     content=ft.Row(
                         [
-                            ft.Icon("logout", color=ft.colors.RED_400),
-                            ft.Text("Sair", color=ft.colors.RED_400),
+                            ft.Icon("logout", color=ft.Colors.RED_400),
+                            ft.Text("Sair", color=ft.Colors.RED_400),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
                     style=ft.ButtonStyle(
-                        bgcolor=ft.colors.RED_900_WITH_OPACITY,
+                        bgcolor="#2A1215",
                         shape=ft.RoundedRectangleBorder(radius=10),
                     ),
                     on_click=fazer_logout,
@@ -147,9 +147,9 @@ def main(page: ft.Page):
             )
             avatar_content = ft.CircleAvatar(
                 content=ft.Text(
-                    inicial, color=ft.colors.WHITE, weight=ft.FontWeight.BOLD
+                    inicial, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD
                 ),
-                bgcolor=ft.colors.BLUE_600,
+                bgcolor=ft.Colors.BLUE_600,
                 radius=20,
             )
 
@@ -162,14 +162,14 @@ def main(page: ft.Page):
                         [
                             ft.Icon(
                                 "auto_awesome",
-                                color=ft.colors.BLUE_400,
+                                color=ft.Colors.BLUE_400,
                                 size=28,
                             ),
                             ft.Text(
                                 "Flow",
                                 size=24,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.colors.WHITE,
+                                color=ft.Colors.WHITE,
                             ),
                         ]
                     ),
@@ -199,22 +199,22 @@ def main(page: ft.Page):
                             controls=[
                                 ft.IconButton(
                                     icon="home_rounded",
-                                    icon_color=ft.colors.WHITE,
+                                    icon_color=ft.Colors.WHITE,
                                     on_click=lambda _: carregar_home(),
                                 ),
                                 ft.IconButton(
                                     icon="chat_bubble_outline_rounded",
-                                    icon_color=ft.colors.GREY_400,
+                                    icon_color=ft.Colors.GREY_400,
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
                                     icon="view_agenda_outlined",
-                                    icon_color=ft.colors.GREY_400,
+                                    icon_color=ft.Colors.GREY_400,
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
                                     icon="more_horiz",
-                                    icon_color=ft.colors.GREY_400,
+                                    icon_color=ft.Colors.GREY_400,
                                     on_click=lambda _: page.show_end_drawer(
                                         page.end_drawer
                                     ),
@@ -230,7 +230,7 @@ def main(page: ft.Page):
                         height=56,
                         content=ft.IconButton(
                             icon="add",
-                            icon_color=ft.colors.BLACK,
+                            icon_color=ft.Colors.BLACK,
                             icon_size=28,
                             on_click=lambda _: None,
                         ),
@@ -245,16 +245,16 @@ def main(page: ft.Page):
 
         email_input = ft.TextField(
             label="E-mail Corporativo",
-            border_color=ft.colors.BLUE_500,
-            focused_border_color=ft.colors.BLUE_400,
+            border_color=ft.Colors.BLUE_500,
+            focused_border_color=ft.Colors.BLUE_400,
             text_size=14,
         )
         senha_input = ft.TextField(
             label="Senha",
             password=True,
             can_reveal_password=True,
-            border_color=ft.colors.GREY_700,
-            focused_border_color=ft.colors.BLUE_400,
+            border_color=ft.Colors.GREY_700,
+            focused_border_color=ft.Colors.BLUE_400,
             text_size=14,
         )
 
@@ -275,14 +275,14 @@ def main(page: ft.Page):
                 controls=[
                     ft.Icon(
                         "auto_awesome",
-                        color=ft.colors.BLUE_400,
+                        color=ft.Colors.BLUE_400,
                         size=40,
                     ),
                     ft.Text(
                         "Flow",
                         size=28,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.colors.WHITE,
+                        color=ft.Colors.WHITE,
                     ),
                     ft.Container(height=10),
                     email_input,
@@ -293,15 +293,15 @@ def main(page: ft.Page):
                         width=310,
                         height=48,
                         style=ft.ButtonStyle(
-                            bgcolor=ft.colors.BLUE_600,
-                            color=ft.colors.WHITE,
+                            bgcolor=ft.Colors.BLUE_600,
+                            color=ft.Colors.WHITE,
                             shape=ft.RoundedRectangleBorder(radius=8),
                         ),
                         on_click=acao_login,
                     ),
                     ft.TextButton(
                         "Não tem conta? Cadastre-se",
-                        style=ft.ButtonStyle(color=ft.colors.BLUE_400),
+                        style=ft.ButtonStyle(color=ft.Colors.BLUE_400),
                         on_click=lambda _: carregar_tela_cadastro(),
                     ),
                 ],
@@ -322,10 +322,10 @@ def main(page: ft.Page):
         page.controls.clear()
 
         nome_input = ft.TextField(
-            label="Nome Completo", border_color=ft.colors.BLUE_500
+            label="Nome Completo", border_color=ft.Colors.BLUE_500
         )
         email_input = ft.TextField(
-            label="E-mail Corporativo", border_color=ft.colors.GREY_700
+            label="E-mail Corporativo", border_color=ft.Colors.GREY_700
         )
         senha_input = ft.TextField(
             label="Senha", password=True, can_reveal_password=True
@@ -348,19 +348,19 @@ def main(page: ft.Page):
                 controls=[
                     ft.Icon(
                         "auto_awesome",
-                        color=ft.colors.BLUE_400,
+                        color=ft.Colors.BLUE_400,
                         size=40,
                     ),
                     ft.Text(
                         "Flow",
                         size=28,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.colors.WHITE,
+                        color=ft.Colors.WHITE,
                     ),
                     ft.Text(
                         "Criar nova credencial de acesso",
                         size=12,
-                        color=ft.colors.GREY_400,
+                        color=ft.Colors.GREY_400,
                     ),
                     ft.Container(height=5),
                     nome_input,
@@ -372,15 +372,15 @@ def main(page: ft.Page):
                         width=310,
                         height=48,
                         style=ft.ButtonStyle(
-                            bgcolor=ft.colors.BLUE_600,
-                            color=ft.colors.WHITE,
+                            bgcolor=ft.Colors.BLUE_600,
+                            color=ft.Colors.WHITE,
                             shape=ft.RoundedRectangleBorder(radius=8),
                         ),
                         on_click=acao_cadastrar,
                     ),
                     ft.TextButton(
                         "Já possui conta? Faça o login.",
-                        style=ft.ButtonStyle(color=ft.colors.BLUE_400),
+                        style=ft.ButtonStyle(color=ft.Colors.BLUE_400),
                         on_click=lambda _: carregar_tela_login(),
                     ),
                 ],
@@ -408,12 +408,12 @@ def main(page: ft.Page):
                 controls=[
                     ft.Text(
                         "Faturamento Total (Nuvem)",
-                        color=ft.colors.GREY_400,
+                        color=ft.Colors.GREY_400,
                         size=14,
                     ),
                     ft.Text(
                         "R$ 17.911,50",
-                        color=ft.colors.GREEN_400,
+                        color=ft.Colors.GREEN_400,
                         size=28,
                         weight=ft.FontWeight.BOLD,
                     ),
@@ -426,18 +426,18 @@ def main(page: ft.Page):
             controls=[
                 ft.Row(
                     [
-                        ft.Icon("description", color=ft.colors.GREY_300),
+                        ft.Icon("description", color=ft.Colors.GREY_300),
                         ft.Text(
                             "Pagamentos",
                             size=18,
                             weight=ft.FontWeight.BOLD,
-                            color=ft.colors.WHITE,
+                            color=ft.Colors.WHITE,
                         ),
                     ]
                 ),
                 ft.IconButton(
                     icon="refresh",
-                    icon_color=ft.colors.BLUE_400,
+                    icon_color=ft.Colors.BLUE_400,
                     on_click=lambda _: page.update(),
                 ),
             ],
@@ -490,9 +490,9 @@ def main(page: ft.Page):
                                         "check_circle"
                                         if item["ok"]
                                         else "access_time_filled",
-                                        color=ft.colors.GREEN_400
+                                        color=ft.Colors.GREEN_400
                                         if item["ok"]
-                                        else ft.colors.AMBER_500,
+                                        else ft.Colors.AMBER_500,
                                         size=24,
                                     ),
                                     ft.Column(
@@ -501,12 +501,12 @@ def main(page: ft.Page):
                                             ft.Text(
                                                 item["nome"],
                                                 weight=ft.FontWeight.BOLD,
-                                                color=ft.colors.WHITE,
+                                                color=ft.Colors.WHITE,
                                                 size=15,
                                             ),
                                             ft.Text(
                                                 f"Filial: {item['filial']} | Responsável: {item['resp']}",
-                                                color=ft.colors.GREY_400,
+                                                color=ft.Colors.GREY_400,
                                                 size=11,
                                             ),
                                         ],
@@ -516,7 +516,7 @@ def main(page: ft.Page):
                             ft.Text(
                                 item["valor"],
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.colors.WHITE,
+                                color=ft.Colors.WHITE,
                                 size=14,
                             ),
                         ],
@@ -556,17 +556,17 @@ def main(page: ft.Page):
         foto_input = ft.TextField(
             label="URL da Foto de Perfil",
             value=usuario_atual.get("foto_url", ""),
-            border_color=ft.colors.GREY_700,
+            border_color=ft.Colors.GREY_700,
         )
         nome_input = ft.TextField(
             label="Nome Completo",
             value=usuario_atual.get("nome", ""),
-            border_color=ft.colors.GREY_700,
+            border_color=ft.Colors.GREY_700,
         )
         celular_input = ft.TextField(
             label="Celular",
             value=usuario_atual.get("celular", ""),
-            border_color=ft.colors.GREY_700,
+            border_color=ft.Colors.GREY_700,
         )
         genero_input = ft.Dropdown(
             label="Gênero",
@@ -577,7 +577,7 @@ def main(page: ft.Page):
                 ft.dropdown.Option("Outro"),
                 ft.dropdown.Option("Não informado"),
             ],
-            border_color=ft.colors.GREY_700,
+            border_color=ft.Colors.GREY_700,
         )
 
         def salvar_perfil(e):
@@ -601,7 +601,7 @@ def main(page: ft.Page):
 
             page.snack_bar = ft.SnackBar(
                 content=ft.Text("Informações salvas com sucesso!"),
-                bgcolor=ft.colors.GREEN_600,
+                bgcolor=ft.Colors.GREEN_600,
             )
             page.snack_bar.open = True
             carregar_home()
@@ -612,14 +612,14 @@ def main(page: ft.Page):
                 controls=[
                     ft.IconButton(
                         icon="arrow_back",
-                        icon_color=ft.colors.WHITE,
+                        icon_color=ft.Colors.WHITE,
                         on_click=lambda _: carregar_home(),
                     ),
                     ft.Text(
                         "Editar Perfil",
                         size=20,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.colors.WHITE,
+                        color=ft.Colors.WHITE,
                     ),
                 ]
             ),
@@ -641,7 +641,7 @@ def main(page: ft.Page):
                         if not foto_input.value
                         else None,
                         radius=45,
-                        bgcolor=ft.colors.BLUE_600,
+                        bgcolor=ft.Colors.BLUE_600,
                     ),
                 ),
                 foto_input,
@@ -654,8 +654,8 @@ def main(page: ft.Page):
                     width=400,
                     height=50,
                     style=ft.ButtonStyle(
-                        bgcolor=ft.colors.BLUE_600,
-                        color=ft.colors.WHITE,
+                        bgcolor=ft.Colors.BLUE_600,
+                        color=ft.Colors.WHITE,
                         shape=ft.RoundedRectangleBorder(radius=10),
                     ),
                     on_click=salvar_perfil,

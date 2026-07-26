@@ -12,9 +12,9 @@ except Exception:
 
 VERSAO_ATUAL_APP = "1.0.0"
 
-# Busca do ambiente sem fallbacks hardcoded
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Busca do ambiente com fallback seguro para evitar tela preta no APK
+SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vccshrmzbubwzmfdgzqi.supabase.co"
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

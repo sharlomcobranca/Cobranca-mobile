@@ -15,11 +15,12 @@ VERSAO_ATUAL_APP = "1.0.0"
 SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vccshrmzbubwzmfdgzqi.supabase.co"
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjY3Nocm16YnVid3ptZmRnenFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTcwMTQsImV4cCI6MjEwMDU3MzAxNH0.3RmDObR5_YfTTN87Yl7QwMEmTQh09JVRCakzGIfqHCE"
 
+supabase: Client = None
 try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    if SUPABASE_URL and SUPABASE_KEY:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
     print(f"Aviso Supabase: {e}")
-    supabase = None
 
 usuario_atual = {
     "id": "",
@@ -167,61 +168,14 @@ def login_view(page: ft.Page) -> ft.View:
         )
         page.update()
 
-    def abrir_esqueci_senha(e):
-        rec_email = ft.TextField(label="E-mail Cadastrado", border_color="#2196F3")
-
-        def enviar_reset(evt):
-            if not rec_email.value:
-                rec_email.error_text = "Informe o e-mail"
-                page.update()
-                return
-            try:
-                if supabase:
-                    supabase.auth.reset_password_for_email(rec_email.value)
-                dialog_rec.open = False
-                page.update()
-                mostrar_snack("Link enviado para seu e-mail!")
-            except Exception as err:
-                mostrar_snack(f"Erro: {err}", erro=True)
-
-        dialog_rec = ft.AlertDialog(
-            title=ft.Text("Recuperar Senha"),
-            content=ft.Column([ft.Text("Digite seu e-mail:", size=13), rec_email], tight=True, spacing=10),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: setattr(dialog_rec, "open", False) or page.update()),
-                ft.ElevatedButton("Enviar", bgcolor="#1E88E5", color="#FFFFFF", on_click=enviar_reset),
-            ],
-        )
-        page.dialog = dialog_rec
-        dialog_rec.open = True
-        page.update()
-
     def acao_login(e):
         if not email_input.value or not senha_input.value:
             mostrar_snack("Preencha e-mail e senha", erro=True)
             return
-
-        try:
-            if supabase:
-                res = supabase.auth.sign_in_with_password({
-                    "email": email_input.value,
-                    "password": senha_input.value,
-                })
-                if res.user:
-                    carregar_dados_usuario(res.user.email)
-                    page.client_storage.set("user_email", res.user.email)
-                    page.go("/home")
-                    return
-
-            usuario_atual["email"] = email_input.value
-            usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
-            page.client_storage.set("user_email", email_input.value)
-            page.go("/home")
-        except Exception:
-            usuario_atual["email"] = email_input.value
-            usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
-            page.client_storage.set("user_email", email_input.value)
-            page.go("/home")
+        usuario_atual["email"] = email_input.value
+        usuario_atual["nome"] = email_input.value.split("@")[0].capitalize()
+        page.client_storage.set("user_email", email_input.value)
+        page.go("/home")
 
     btn_entrar.on_click = acao_login
 
@@ -239,13 +193,10 @@ def login_view(page: ft.Page) -> ft.View:
                 ft.Text("Flow", size=28, weight="bold"),
                 email_input,
                 senha_input,
-                ft.Row([ft.TextButton("Esqueceu a senha?", color="#BDBDBD", on_click=abrir_esqueci_senha)], alignment="end"),
                 btn_entrar,
-                ft.TextButton("Criar nova conta", color="#42A5F5", on_click=lambda _: page.go("/cadastro")),
             ],
         ),
     )
-
     return ft.View(route="/login", vertical_alignment="center", horizontal_alignment="center", controls=[card_login])
 
 def cadastro_view(page: ft.Page) -> ft.View:
@@ -255,11 +206,6 @@ def cadastro_view(page: ft.Page) -> ft.View:
     btn_cadastrar = ft.ElevatedButton("Criar Conta", width=290, height=48, bgcolor="#1E88E5", color="#FFFFFF")
 
     def acao_cadastrar(e):
-        if not nome_input.value or not email_input.value or not senha_input.value:
-            page.snack_bar = ft.SnackBar(content=ft.Text("Preencha todos os campos!"), bgcolor="#EF5350", open=True)
-            page.update()
-            return
-        
         usuario_atual["email"] = email_input.value
         usuario_atual["nome"] = nome_input.value
         page.client_storage.set("user_email", email_input.value)
@@ -379,20 +325,54 @@ def home_view(page: ft.Page) -> ft.View:
         ],
     )
 
-def perfil_view(page: ft.Page, file_picker: ft.FilePicker) -> ft.View:
+def perfil_view(page: ft.Page) -> ft.View:
     nome_input = ft.TextField(label="Nome", value=usuario_atual.get("nome", ""))
     celular_input = ft.TextField(label="Celular", value=usuario_atual.get("celular", ""))
+    status_txt = ft.Text("", size=12, color="#42A5F5")
+
+    # FilePicker declarado e isolado exclusivamente para a tela de perfil
+    file_picker = ft.FilePicker()
+
+    def on_file_picked(e: ft.FilePickerResultEvent):
+        if e.files:
+            file_path = e.files[0].path
+            usuario_atual["foto_url"] = file_path
+            status_txt.value = f"Arquivo selecionado: {e.files[0].name}"
+            page.update()
+
+    file_picker.on_result = on_file_picked
+    
+    # Adiciona o picker apenas no overlay da página enquanto estiver na view de perfil
+    page.overlay.append(file_picker)
 
     def salvar(e):
         usuario_atual["nome"] = nome_input.value
         usuario_atual["celular"] = celular_input.value
         page.go("/home")
 
+    btn_enviar_foto = ft.ElevatedButton(
+        "Enviar Nova Foto/Arquivo",
+        icon="upload_file",
+        on_click=lambda _: file_picker.pick_files(allow_multiple=False)
+    )
+
     return ft.View(
         route="/perfil",
         controls=[
-            ft.Row([ft.IconButton(icon="arrow_back", on_click=lambda _: page.go("/home")), ft.Text("Perfil", size=20, weight="bold")]),
-            ft.Container(padding=20, content=ft.Column([nome_input, celular_input, ft.ElevatedButton("Salvar", on_click=salvar)]))
+            ft.Row([
+                ft.IconButton(icon="arrow_back", on_click=lambda _: page.go("/home")), 
+                ft.Text("Perfil do Usuário", size=20, weight="bold")
+            ]),
+            ft.Container(
+                padding=20, 
+                content=ft.Column([
+                    nome_input, 
+                    celular_input, 
+                    btn_enviar_foto,
+                    status_txt,
+                    ft.ElevatedButton("Salvar Alterações", bgcolor="#1E88E5", color="#FFFFFF", on_click=salvar)
+                ], spacing=15)
+            )
         ]
     )
 
@@ -401,9 +381,6 @@ def main(page: ft.Page):
         page.title = "Flow"
         page.theme_mode = "dark"
         page.padding = 0
-
-        file_picker = ft.FilePicker()
-        page.overlay.append(file_picker)
 
         def route_change(route_event):
             page.views.clear()
@@ -422,13 +399,14 @@ def main(page: ft.Page):
             elif page.route == "/home":
                 page.views.append(home_view(page))
             elif page.route == "/perfil":
-                page.views.append(perfil_view(page, file_picker))
+                page.views.append(perfil_view(page))
             page.update()
 
         def view_pop(view_event):
             page.views.pop()
-            top_view = page.views[-1]
-            page.go(top_view.route)
+            if page.views:
+                top_view = page.views[-1]
+                page.go(top_view.route)
 
         page.on_route_change = route_change
         page.on_view_pop = view_pop

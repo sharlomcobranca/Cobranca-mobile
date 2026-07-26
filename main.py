@@ -26,7 +26,6 @@ def main(page: ft.Page):
         "genero": "Não informado",
         "foto_url": "",
     }
-    tela_atual = "login"  # login, cadastro, home, perfil
 
     # --- VERIFICAÇÃO DE ATUALIZAÇÃO ---
     def verificar_atualizacao():
@@ -69,7 +68,7 @@ def main(page: ft.Page):
         except Exception as err:
             print(f"Erro ao checar atualizações: {err}")
 
-    # --- SIMULAÇÃO DE NOTIFICAÇÕES PUSH ---
+    # --- NOTIFICAÇÕES PUSH ---
     async def inicializar_notificacoes():
         page.snack_bar = ft.SnackBar(
             content=ft.Text("🔔 Serviço de notificações ativo."),
@@ -103,7 +102,7 @@ def main(page: ft.Page):
         controls=[
             ft.Container(height=20),
             ft.ListTile(
-                leading=ft.Icon(ft.icons.PERSON, color=ft.colors.BLUE_400),
+                leading=ft.Icon("person", color=ft.colors.BLUE_400),
                 title=ft.Text(
                     "Meu Perfil",
                     color=ft.colors.WHITE,
@@ -117,7 +116,7 @@ def main(page: ft.Page):
                 content=ft.ElevatedButton(
                     content=ft.Row(
                         [
-                            ft.Icon(ft.icons.LOGOUT, color=ft.colors.RED_400),
+                            ft.Icon("logout", color=ft.colors.RED_400),
                             ft.Text("Sair", color=ft.colors.RED_400),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
@@ -162,7 +161,7 @@ def main(page: ft.Page):
                     ft.Row(
                         [
                             ft.Icon(
-                                ft.icons.AUTO_AWESOME,
+                                "auto_awesome",
                                 color=ft.colors.BLUE_400,
                                 size=28,
                             ),
@@ -189,7 +188,6 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    # Pílula de navegação flutuante
                     ft.Container(
                         bgcolor="#262832",
                         border_radius=30,
@@ -200,22 +198,22 @@ def main(page: ft.Page):
                             spacing=15,
                             controls=[
                                 ft.IconButton(
-                                    icon=ft.icons.HOME_ROUNDED,
+                                    icon="home_rounded",
                                     icon_color=ft.colors.WHITE,
                                     on_click=lambda _: carregar_home(),
                                 ),
                                 ft.IconButton(
-                                    icon=ft.icons.CHAT_BUBBLE_OUTLINE_ROUNDED,
+                                    icon="chat_bubble_outline_rounded",
                                     icon_color=ft.colors.GREY_400,
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
-                                    icon=ft.icons.VIEW_AGENDA_OUTLINED,
+                                    icon="view_agenda_outlined",
                                     icon_color=ft.colors.GREY_400,
                                     on_click=lambda _: None,
                                 ),
                                 ft.IconButton(
-                                    icon=ft.icons.MORE_HORIZ,
+                                    icon="more_horiz",
                                     icon_color=ft.colors.GREY_400,
                                     on_click=lambda _: page.show_end_drawer(
                                         page.end_drawer
@@ -225,14 +223,13 @@ def main(page: ft.Page):
                         ),
                     ),
                     ft.Container(width=10),
-                    # Botão + Flutuante
                     ft.Container(
                         bgcolor="#7B93FF",
                         border_radius=20,
                         width=56,
                         height=56,
                         content=ft.IconButton(
-                            icon=ft.icons.ADD,
+                            icon="add",
                             icon_color=ft.colors.BLACK,
                             icon_size=28,
                             on_click=lambda _: None,
@@ -277,7 +274,7 @@ def main(page: ft.Page):
                 spacing=15,
                 controls=[
                     ft.Icon(
-                        ft.icons.AUTO_AWESOME,
+                        "auto_awesome",
                         color=ft.colors.BLUE_400,
                         size=40,
                     ),
@@ -350,7 +347,7 @@ def main(page: ft.Page):
                 spacing=15,
                 controls=[
                     ft.Icon(
-                        ft.icons.AUTO_AWESOME,
+                        "auto_awesome",
                         color=ft.colors.BLUE_400,
                         size=40,
                     ),
@@ -403,7 +400,6 @@ def main(page: ft.Page):
     def carregar_home():
         page.controls.clear()
 
-        # Faturamento
         card_faturamento = ft.Container(
             bgcolor="#1E1F25",
             padding=20,
@@ -425,15 +421,12 @@ def main(page: ft.Page):
             ),
         )
 
-        # Seção Pagamentos
         header_pagamentos = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
                 ft.Row(
                     [
-                        ft.Icon(
-                            ft.icons.DESCRIPTION, color=ft.colors.GREY_300
-                        ),
+                        ft.Icon("description", color=ft.colors.GREY_300),
                         ft.Text(
                             "Pagamentos",
                             size=18,
@@ -443,14 +436,13 @@ def main(page: ft.Page):
                     ]
                 ),
                 ft.IconButton(
-                    icon=ft.icons.REFRESH,
+                    icon="refresh",
                     icon_color=ft.colors.BLUE_400,
                     on_click=lambda _: page.update(),
                 ),
             ],
         )
 
-        # Lista de Pagamentos
         pagamentos_mock = [
             {
                 "nome": "João Silva",
@@ -495,9 +487,9 @@ def main(page: ft.Page):
                             ft.Row(
                                 [
                                     ft.Icon(
-                                        ft.icons.CHECK_CIRCLE
+                                        "check_circle"
                                         if item["ok"]
-                                        else ft.icons.ACCESS_TIME_FILLED,
+                                        else "access_time_filled",
                                         color=ft.colors.GREEN_400
                                         if item["ok"]
                                         else ft.colors.AMBER_500,
@@ -541,7 +533,7 @@ def main(page: ft.Page):
                 card_faturamento,
                 header_pagamentos,
                 *cards_pagamento,
-                ft.Container(height=80),  # Espaço para o menu flutuante não cobrir
+                ft.Container(height=80),
             ],
         )
 
@@ -594,7 +586,6 @@ def main(page: ft.Page):
             usuario_atual["celular"] = celular_input.value
             usuario_atual["genero"] = genero_input.value
 
-            # Persiste no Supabase caso exista tabela 'perfis'
             try:
                 supabase.table("perfis").upsert(
                     {
@@ -620,7 +611,7 @@ def main(page: ft.Page):
             content=ft.Row(
                 controls=[
                     ft.IconButton(
-                        icon=ft.icons.ARROW_BACK,
+                        icon="arrow_back",
                         icon_color=ft.colors.WHITE,
                         on_click=lambda _: carregar_home(),
                     ),
@@ -646,7 +637,7 @@ def main(page: ft.Page):
                         foreground_image_url=foto_input.value
                         if foto_input.value
                         else None,
-                        content=ft.Icon(ft.icons.PERSON, size=40)
+                        content=ft.Icon("person", size=40)
                         if not foto_input.value
                         else None,
                         radius=45,
